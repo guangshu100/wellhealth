@@ -1,0 +1,95 @@
+/**
+ * 康伴健康 - 统一主题变量
+ * 
+ * 本文件为 Web 和小程序提供统一的主题颜色变量
+ * Web 端: 直接导入使用 CSS 变量
+ * 小程序端: 编译时引用 uni.scss 变量
+ * 
+ * 换肤方案:
+ * 1. 替换本文件中的颜色值
+ * 2. 运行构建工具生成各端样式文件
+ * 3. Web 端可通过 JS 动态切换 CSS 变量实现换肤
+ */
+
+// ============================================
+// 主题: 鼠尾草绿 (Sage Green) - 当前使用
+// ============================================
+
+// 主色系
+$color-primary: #5E8B5A;
+$color-primary-light: #7CA878;
+$color-primary-dark: #4C7048;
+
+// 背景色系
+$color-bg-page: #FCF8F0;
+$color-bg-card: #FFFFFF;
+$color-bg-card-light: #FCF8F0;
+$color-bg-hover: #E8F0E6;
+
+// 辅助色系
+$color-secondary: #DDCFB0;
+$color-secondary-light: #E8DFD0;
+$color-accent: #E7B83E;
+$color-accent-light: #F0CE70;
+
+// 功能色系
+$color-success: #5E8B5A;
+$color-warning: #E7B83E;
+$color-danger: #CD8B5B;
+$color-error: #CD8B5B;
+$color-info: #DDCFB0;
+
+// 文字色系
+$color-text-primary: #2F2E2A;
+$color-text-secondary: #7F7D74;
+$color-text-placeholder: #A5A49C;
+$color-text-inverse: #FFFFFF;
+
+// 边框色系
+$color-border: #DDCFB0;
+$color-border-light: #E8DFD0;
+
+// ============================================
+// 渐变配置
+// ============================================
+$gradient-header: linear-gradient(135deg, #5E8B5A, #7CA878);
+$gradient-button: linear-gradient(135deg, #5E8B5A, #7CA878);
+$gradient-primary: linear-gradient(135deg, #5E8B5A, #7CA878);
+
+// ============================================
+// 阴影配置
+// ============================================
+$shadow-card: 0 2px 12px rgba(60, 55, 45, 0.08);
+$shadow-button: 0 2px 8px rgba(94, 139, 90, 0.3);
+$shadow-popup: 0 4px 20px rgba(60, 55, 45, 0.12);
+
+// ============================================
+// Element Plus 变量 (Web 专用)
+// ============================================
+$el-color-primary: #5E8B5A;
+$el-color-primary-light-3: #7CA878;
+$el-color-primary-light-5: #96BC96;
+$el-color-primary-light-7: #B0CDB0;
+$el-color-primary-light-8: #C8DCC8;
+$el-color-primary-light-9: #E0EBE0;
+$el-color-primary-dark-2: #4C7048;
+$el-color-success: #5E8B5A;
+$el-color-warning: #E7B83E;
+$el-color-danger: #CD8B5B;
+$el-color-error: #CD8B5B;
+$el-color-info: #DDCFB0;
+
+// ============================================
+// UniApp 变量 (小程序专用)
+// ============================================
+$uni-color-primary: #5E8B5A;
+$uni-color-success: #5E8B5A;
+$uni-color-warning: #E7B83E;
+$uni-color-error: #CD8B5B;
+$uni-text-color: #2F2E2A;
+$uni-text-color-inverse: #FFFFFF;
+$uni-text-color-grey: #7F7D74;
+$uni-text-color-placeholder: #7F7D74;
+$uni-bg-color: #FFFFFF;
+$uni-bg-color-grey: #FCF8F0;
+$uni-bg-color-hover: #E8F0E6;

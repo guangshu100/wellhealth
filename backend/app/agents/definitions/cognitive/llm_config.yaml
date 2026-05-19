@@ -1,0 +1,7 @@
+provider: siliconflow
+model: Qwen/Qwen2.5-7B-Instruct
+temperature: 0.3
+max_tokens: 2000
+timeout: 60
+fallback_provider: siliconflow
+fallback_model: Qwen/Qwen2.5-7B-Instruct

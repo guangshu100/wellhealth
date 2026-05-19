@@ -1,0 +1,23 @@
+# ============================================================
+# LLM 配置文件 - 用药咨询 Agent
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+provider: siliconflow
+
+# Model: Provider/模型名称
+model: Qwen/Qwen2.5-7B-Instruct
+
+# Temperature: 0.0-2.0
+# 用药建议需要高准确性，低随机性
+temperature: 0.5
+
+# Max Tokens: 正整数
+max_tokens: 2000
+
+# Timeout: 秒数
+timeout: 60
+
+# Fallback: 主 Provider 不可用时切换
+fallback_provider: siliconflow
+fallback_model: Qwen/Qwen2.5-7B-Instruct

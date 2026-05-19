@@ -1,0 +1,72 @@
+[project]
+name = "wellhealth-backend"
+version = "1.0.0"
+description = "康伴(WellHealth) - 慢病管理AI平台后端服务"
+authors = [{name = "WellHealth Team"}]
+license = {text = "MIT"}
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "httpx>=0.27.0",
+]
+
+[tool.poetry]
+name = "wellhealth-backend"
+version = "1.0.0"
+description = "康伴(WellHealth) - 慢病管理AI平台后端服务"
+authors = ["WellHealth Team"]
+license = "MIT"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.115.0"
+uvicorn = "^0.32.0"
+sqlalchemy = "^2.0.0"
+pymysql = "^1.1.0"
+pydantic = "^2.10.0"
+pydantic-settings = "^2.6.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = "^1.7.4"
+python-multipart = "^0.0.19"
+redis = "^5.2.0"
+langchain = "^0.3.0"
+langchain-community = "^0.3.0"
+langgraph = "^0.2.0"
+neo4j = "^5.28.0"
+qdrant-client = "^1.12.0"
+httpx = "^0.27.0"
+aiohttp = "^3.11.0"
+celery = "^5.4.0"
+python-dotenv = "^1.0.0"
+alembic = "^1.14.0"
+Pillow = "^11.0.0"
+yagmail = "^0.16.4"
+PyJWT = "^2.9.0"
+captcha = "^0.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+ruff = "^0.8.0"
+httpx = "^0.27.0"
+
+[tool.poetry.scripts]
+wellhealth = "app.main:main"
+
+[tool.uvicorn]
+host = "0.0.0.0"
+port = 8000
+reload = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

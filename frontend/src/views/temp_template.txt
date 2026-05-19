@@ -1,0 +1,111 @@
+﻿<template>
+  <div class="chat-view">
+    <el-container>
+      <!-- 宸︿晶鍘嗗彶闈㈡澘 -->
+      <el-aside width="240px" class="history-panel">
+        <div class="history-header">
+          <h3>搴蜂即AI</h3>
+          <el-button circle size="small" @click="createNewChat" title="鏂板缓瀵硅瘽">
+            <el-icon>
+              <Plus />
+            </el-icon>
+          </el-button>
+        </div>
+
+        <el-scrollbar>
+          <div class="history-list">
+            <div v-for="session in sessionList" :key="session.id"
+              :class="['history-item', { active: agentStore.sessionId === session.id }]"
+              @click="switchSession(session)">
+              <div class="history-title">{{ session.title || '鏂板璇? }}</div>
+              <div class="history-meta">
+                {{ formatDate(session.updated_at) }} 路 {{ session.message_count }}鏉?
+              </div>
+            </div>
+            <div v-if="sessionList.length === 0" class="history-empty">
+              鏆傛棤鍘嗗彶瀵硅瘽
+            </div>
+          </div>
+        </el-scrollbar>
+
+        <!-- 鎮ｈ€呬俊鎭?-->
+        <div class="patient-card" v-if="patientStore.currentPatient">
+          <div class="patient-avatar">
+            <el-icon>
+              <User />
+            </el-icon>
+          </div>
+          <div class="patient-info">
+            <div class="patient-name">{{ patientStore.currentPatient.name }}</div>
+            <div class="patient-tags">
+              <el-tag v-for="d in patientStore.currentPatient.diseases" :key="d" size="small">
+                {{ d }}
+              </el-tag>
+            </div>
+          </div>
+        </div>
+      </el-aside>
+
+      <!-- 涓昏亰澶╁尯鍩?-->
+      <el-main class="chat-main">
+        <!-- 绠€娲侀《閮?-->
+        <div class="chat-topbar">
+          <div class="chat-title" v-if="agentStore.currentAgent">
+            <span class="agent-emoji">{{ agentStore.currentAgentEmoji }}</span>
+            <span class="agent-name">{{ agentStore.currentAgent?.name }}</span>
+          </div>
+        </div>
+
+        <!-- 娑堟伅鍖哄煙 -->
+        <div class="messages-container" ref="messagesRef">
+        <!-- 娆㈣繋娑堟伅 -->
+        <div class="welcome-message" v-if="agentStore.messages.length === 0">
+          <div class="welcome-icon">馃彞</div>
+          <div class="welcome-title">娆㈣繋浣跨敤搴蜂即AI鍔╂墜</div>
+          <div class="welcome-desc">
+            鎴戝彲浠ュ府鎮ㄧ鐞嗘參鎬х柧鐥咃紝鎻愪緵涓撲笟鍋ュ悍鍜ㄨ
+          </div>
+          <div class="quick-questions">
+            <el-button v-for="q in quickQuestions" :key="q" size="small" @click="sendQuickQuestion(q)">
+              {{ q }}
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 娑堟伅鍒楄〃 -->
+        <div v-for="(msg, index) in agentStore.messages" :key="index" :class="['message-wrapper', msg.role]">
+          <!-- 鐢ㄦ埛娑堟伅 -->
+          <div class="message user-message" v-if="msg.role === 'user'">
+            <div class="message-content">{{ msg.content }}</div>
+            <div class="message-avatar">馃懁</div>
+          </div>
+
+          <!-- AI娑堟伅 -->
+          <div class="message assistant-message" v-else>
+            <div class="message-avatar">{{ getAgentEmoji(msg.agentType) }}</div>
+            <div class="message-content-wrapper">
+              <div class="message-agent-tag" v-if="msg.agentType">
+                <el-tag :color="getAgentColor(msg.agentType)" effect="dark" size="small">
+                  {{ getAgentName(msg.agentType) }}
+                </el-tag>
+              </div>
+
+              <!-- 鎬濊€冭繃绋?-->
+              <div v-if="msg.thinking" class="thinking-process">
+                <div class="thinking-header" @click="toggleThinking(index)"
+                  :class="{ expanded: msg.thinking.expanded }">
+                  <span class="thinking-icon">{{ msg.thinking.expanded ? '鈻? : '鈻? }}</span>
+                  <span class="thinking-title">
+                    {{ msg.thinking.type === 'multi' ? '馃 澶氭柟涓撳浼氳瘖' : '馃挰 Agent瀵硅瘽璁ㄨ' }}
+                  </span>
+                </div>
+                <div v-if="msg.thinking.expanded" class="thinking-content">
+                  <template v-if="msg.thinking.type === 'multi' && msg.thinking.agents">
+                    <div v-for="agent in msg.thinking.agents" :key="agent.agent_type" class="thinking-agent">
+                      <div class="agent-header">
+                        <span class="agent-emoji">{{ getAgentEmoji(agent.agent_type) }}</span>
+                        <span class="agent-name">{{ agent.agent_name }}</span>
+                      </div>
+                      <div class="agent-response markdown-body" v-html="renderMarkdown(agent.response)"></div>
+                    </div>
+                  </template>

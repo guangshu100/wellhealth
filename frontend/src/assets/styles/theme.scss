@@ -1,0 +1,71 @@
+/**
+ * 主题: 鼠尾草绿
+ * 生成时间: 2026-03-25T15:44:59.278Z
+ * 
+ * 使用方式: 
+ * - Web: @import '@/assets/styles/theme.scss';
+ * - 将此文件内容复制到 main.scss 中
+ */
+
+:root {
+  /* 主色 */
+  --color-primary: #5E8B5A;
+  --color-primary-light: #7CA878;
+  --color-primary-dark: #4C7048;
+  
+  /* 背景色 */
+  --color-bg-page: #FCF8F0;
+  --color-bg-card: #FFFFFF;
+  --color-bg-card-light: #FCF8F0;
+  --color-bg-hover: #E8F0E6;
+  
+  /* 辅助色 */
+  --color-secondary: #DDCFB0;
+  --color-secondary-light: #E8DFD0;
+  --color-accent: #E7B83E;
+  --color-accent-light: #F0CE70;
+  
+  /* 功能色 */
+  --color-success: #5E8B5A;
+  --color-warning: #E7B83E;
+  --color-danger: #CD8B5B;
+  --color-error: #CD8B5B;
+  --color-info: #DDCFB0;
+  
+  /* 文字色 */
+  --color-text-primary: #2F2E2A;
+  --color-text-secondary: #7F7D74;
+  --color-text-placeholder: #A5A49C;
+  --color-text-inverse: #FFFFFF;
+  
+  /* 边框色 */
+  --color-border: #DDCFB0;
+  --color-border-light: #E8DFD0;
+  
+  /* 渐变 */
+  --gradient-header: linear-gradient(135deg, #5E8B5A, #7CA878);
+  --gradient-button: linear-gradient(135deg, #5E8B5A, #7CA878);
+  
+  /* 阴影 */
+  --shadow-card: 0 2px 12px rgba(60, 55, 45, 0.08);
+  --shadow-button: 0 2px 8px #5E8B5A4D;
+  
+  /* Element Plus 主题 */
+  --el-color-primary: #5E8B5A;
+  --el-color-primary-light-3: #7CA878;
+  --el-color-primary-light-5: #7CA878;
+  --el-color-primary-light-7: #7CA878;
+  --el-color-primary-dark-2: #4C7048;
+  --el-color-success: #5E8B5A;
+  --el-color-warning: #E7B83E;
+  --el-color-danger: #CD8B5B;
+  --el-color-error: #CD8B5B;
+  --el-color-info: #DDCFB0;
+  --el-bg-color: #FCF8F0;
+  --el-bg-color-overlay: #FFFFFF;
+  --el-text-color-regular: #2F2E2A;
+  --el-text-color-secondary: #7F7D74;
+  --el-text-color-placeholder: #A5A49C;
+  --el-border-color: #DDCFB0;
+  --el-border-color-light: #E8DFD0;
+}

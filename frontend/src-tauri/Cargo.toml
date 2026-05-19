@@ -1,0 +1,31 @@
+[package]
+name = "wellhealth"
+version = "1.0.0"
+description = "康伴健康 - 慢病管理AI平台"
+authors = ["WellHealth Team"]
+edition = "2021"
+
+[lib]
+name = "wellhealth_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tauri-plugin-http = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-os = "2"
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+env_logger = "0.11"
+
+[profile.release]
+lto = false
+opt-level = 2
+strip = true

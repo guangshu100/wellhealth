@@ -1,0 +1,24 @@
+# ============================================================
+# LLM 配置文件 - 高血压 Agent
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+provider: openai
+
+# Model: Provider/模型名称
+model: gpt-4o
+
+# Temperature: 0.0-2.0
+temperature: 0.6
+
+# Max Tokens: 正整数
+max_tokens: 2000
+
+# Timeout: 秒数
+timeout: 120
+
+# Fallback Provider: 备用服务商
+fallback_provider: siliconflow
+
+# Fallback Model: 备用模型
+fallback_model: Qwen/Qwen2.5-7B-Instruct

@@ -1,0 +1,23 @@
+# ============================================================
+# LLM 配置文件 - 心理健康 Agent
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+provider: siliconflow
+
+# Model: Provider/模型名称
+model: Qwen/Qwen2.5-7B-Instruct
+
+# Temperature: 0.0-2.0
+# 心理健康回答需要稳定、温和
+temperature: 0.5
+
+# Max Tokens: 正整数
+max_tokens: 2000
+
+# Timeout: 秒数
+timeout: 60
+
+# Fallback: 主 Provider 不可用时切换
+fallback_provider: siliconflow
+fallback_model: Qwen/Qwen2.5-7B-Instruct

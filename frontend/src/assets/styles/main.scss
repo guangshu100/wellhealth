@@ -1,0 +1,225 @@
+/**
+ * 康伴健康 - 全局样式
+ * 
+ * 主题说明:
+ * - 主题变量定义在 ./theme.scss 中
+ * - 一键换肤: 运行 `node scripts/build-theme.js <theme-name>`
+ * - 支持主题: sagegreen, mistblue
+ * 
+ * 使用方式:
+ * - 将 theme.scss 中的 :root 块内容复制到下方
+ * - 或直接 @import 但需要确保语法正确
+ */
+
+// 引入主题变量
+@import './theme.scss';
+
+/* 以下为额外组件样式覆盖 (使用 CSS 变量) */
+
+/* 全局样式重置 */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
+
+/* 链接样式 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  
+  &:hover {
+    color: var(--color-primary-dark);
+  }
+}
+
+/* 按钮主题色覆盖 */
+.el-button--primary {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-bg-color: var(--color-primary-dark);
+  --el-button-hover-border-color: var(--color-primary-dark);
+}
+
+.el-button--success {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+}
+
+.el-button--warning {
+  --el-button-bg-color: var(--color-accent);
+  --el-button-border-color: var(--color-accent);
+}
+
+.el-button--danger {
+  --el-button-bg-color: var(--color-danger);
+  --el-button-border-color: var(--color-danger);
+}
+
+/* 输入框样式 */
+.el-input__wrapper {
+  --el-input-bg-color: var(--color-bg-card);
+  --el-input-border-color: var(--color-border);
+  --el-input-hover-border-color: var(--color-text-secondary);
+  --el-input-focus-border-color: var(--color-primary);
+}
+
+.el-input__wrapper:focus-within {
+  box-shadow: 0 0 0 1px var(--color-primary) inset;
+}
+
+/* 表单样式 */
+.el-form-item__label {
+  --el-form-label-font-color: var(--color-text-primary);
+}
+
+/* 卡片样式 */
+.el-card {
+  --el-card-bg-color: var(--color-bg-card);
+  --el-card-border-color: var(--color-border);
+  border-radius: 12px;
+}
+
+/* 菜单样式 */
+.el-menu {
+  --el-menu-bg-color: var(--color-bg-page);
+  --el-menu-text-color: var(--color-text-primary);
+  --el-menu-active-color: var(--color-primary);
+  --el-menu-hover-bg-color: var(--color-bg-page);
+  --el-menu-hover-color: var(--color-primary);
+}
+
+/* 标签样式 */
+.el-tag {
+  --el-tag-bg-color: var(--color-bg-page);
+  --el-tag-border-color: var(--color-border);
+  --el-tag-text-color: var(--color-text-secondary);
+}
+
+.el-tag--success {
+  --el-tag-bg-color: var(--color-bg-hover);
+  --el-tag-border-color: var(--color-primary-light);
+  --el-tag-text-color: var(--color-primary);
+}
+
+/* 消息提示样式 */
+.el-message {
+  --el-message-bg-color: var(--color-bg-card);
+  --el-message-border-color: var(--color-border);
+}
+
+/* 弹窗样式 */
+.el-dialog {
+  --el-dialog-bg-color: var(--color-bg-card);
+  border-radius: 12px;
+}
+
+.el-dialog__header {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.el-dialog__title {
+  color: var(--color-primary);
+}
+
+/* 表格样式 */
+.el-table {
+  --el-table-bg-color: var(--color-bg-card);
+  --el-table-tr-bg-color: var(--color-bg-card);
+  --el-table-header-bg-color: var(--color-bg-page);
+  --el-table-row-hover-bg-color: var(--color-bg-page);
+  --el-table-border-color: var(--color-border);
+  --el-table-text-color: var(--color-text-primary);
+  --el-table-header-text-color: var(--color-primary);
+}
+
+/* 分页样式 */
+.el-pagination {
+  --el-pagination-bg-color: var(--color-bg-card);
+  --el-pagination-button-bg-color: var(--color-bg-card);
+  --el-pagination-button-color: var(--color-text-secondary);
+  --el-pagination-hover-color: var(--color-primary);
+}
+
+/* 标签页样式 */
+.el-tabs__item {
+  color: var(--color-text-secondary);
+  
+  &:hover {
+    color: var(--color-primary);
+  }
+  
+  &.is-active {
+    color: var(--color-primary);
+  }
+}
+
+.el-tabs__active-bar {
+  background-color: var(--color-primary);
+}
+
+/* 复选框样式 */
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 单选框样式 */
+.el-radio__input.is-checked .el-radio__inner {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 开关样式 */
+.el-switch.is-checked .el-switch__core {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 进度条样式 */
+.el-progress-bar__outer {
+  background-color: var(--color-secondary-light);
+}
+
+.el-progress-bar__inner {
+  background-color: var(--color-primary);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* 顶部导航栏背景 */
+.el-header,
+.app-header,
+.header {
+  background-color: var(--color-bg-card) !important;
+}
+
+/* 侧边栏背景 */
+.el-aside,
+.sidebar {
+  background-color: var(--color-bg-page) !important;
+}

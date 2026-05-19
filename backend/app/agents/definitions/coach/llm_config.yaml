@@ -1,0 +1,24 @@
+# ============================================================
+# LLM 配置文件 - 运动健康教练 Agent
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+# 运动教练使用开源模型，响应快
+provider: siliconflow
+
+# Model: Provider/模型名称
+model: Qwen/Qwen2.5-7B-Instruct
+
+# Temperature: 0.0-2.0
+# 运动建议可以更有活力和创意
+temperature: 0.8
+
+# Max Tokens: 正整数
+max_tokens: 1500
+
+# Timeout: 秒数
+timeout: 60
+
+# Fallback: 主 Provider 不可用时切换
+fallback_provider: null
+fallback_model: null

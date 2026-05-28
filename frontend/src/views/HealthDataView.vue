@@ -5,6 +5,16 @@
       <p>记录和管理日常健康指标</p>
     </el-card>
 
+    <el-card class="patient-select-card">
+      <el-form inline>
+        <el-form-item label="选择患者">
+          <el-select v-model="patientId" placeholder="请选择患者" @change="onPatientChange" style="width: 200px">
+            <el-option v-for="p in patients" :key="p.id" :label="p.name" :value="p.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <el-tabs v-model="activeTab" type="border-card">
       <!-- 数据录入 -->
       <el-tab-pane label="📝 数据录入" name="input">
@@ -174,9 +184,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { patientApi, healthApi } from '@/api'
 
-const patientId = ref('patient_001')
+const patientId = ref('')
+const patients = ref([])
 
 const activeTab = ref('input')
 const trendType = ref('blood_sugar')
@@ -217,6 +228,10 @@ const updateUnit = () => {
 }
 
 const addRecord = async () => {
+  if (!patientId.value) {
+    ElMessage.warning('请先选择患者')
+    return
+  }
   try {
     let recordData = {
       patient_id: patientId.value,
@@ -224,7 +239,6 @@ const addRecord = async () => {
       recorded_at: newRecord.value.recorded_at,
       notes: newRecord.value.notes
     }
-    
     if (newRecord.value.type === 'blood_pressure') {
       recordData.type = 'blood_pressure'
       recordData.value = `${newRecord.value.systolic}/${newRecord.value.diastolic}`
@@ -233,9 +247,8 @@ const addRecord = async () => {
       recordData.value = newRecord.value.value
       recordData.unit = newRecord.value.unit
     }
-    
-    const res = await axios.post('/api/v1/health/record/add', recordData)
-    if (res.data.success) {
+    const res = await healthApi.addRecord(recordData)
+    if (res.success) {
       ElMessage.success('记录保存成功')
       await loadRecords()
     }
@@ -245,38 +258,27 @@ const addRecord = async () => {
 }
 
 const loadRecords = async () => {
+  if (!patientId.value) return
   try {
-    const res = await axios.get(`/api/v1/health/records/${patientId.value}`)
-    if (res.data.success) {
-      records.value = res.data.records
-    }
-  } catch (e) {
-    console.error('加载记录失败', e)
-  }
+    const res = await healthApi.getRecords(patientId.value)
+    records.value = res.records || []
+  } catch {}
 }
 
 const loadTrends = async () => {
+  if (!patientId.value) return
   try {
-    const res = await axios.get(`/api/v1/health/trends/${patientId.value}`, {
-      params: { type: trendType.value }
-    })
-    if (res.data.success) {
-      trendData.value = res.data.trend
-    }
-  } catch (e) {
-    console.error('加载趋势失败', e)
-  }
+    const res = await healthApi.getTrends(patientId.value, trendType.value)
+    trendData.value = res.trend || {}
+  } catch {}
 }
 
 const loadAlerts = async () => {
+  if (!patientId.value) return
   try {
-    const res = await axios.get(`/api/v1/health/alerts/${patientId.value}`)
-    if (res.data.success) {
-      alerts.value = res.data.alerts
-    }
-  } catch (e) {
-    console.error('加载预警失败', e)
-  }
+    const res = await healthApi.getAlerts(patientId.value)
+    alerts.value = res.alerts || []
+  } catch {}
 }
 
 const formatDate = (dateStr) => {
@@ -311,11 +313,28 @@ const getAlertType = (severity) => {
   return types[severity] || 'info'
 }
 
-onMounted(() => {
-  updateUnit()
+const loadPatients = async () => {
+  try {
+    const res = await patientApi.getList()
+    patients.value = Array.isArray(res) ? res : (res.patients || [])
+    if (patients.value.length > 0 && !patientId.value) {
+      patientId.value = patients.value[0].id
+      loadRecords()
+      loadTrends()
+      loadAlerts()
+    }
+  } catch {}
+}
+
+const onPatientChange = () => {
   loadRecords()
   loadTrends()
   loadAlerts()
+}
+
+onMounted(() => {
+  updateUnit()
+  loadPatients()
 })
 </script>
 
@@ -327,6 +346,10 @@ onMounted(() => {
 .header-card {
   margin-bottom: 20px;
   text-align: center;
+}
+
+.patient-select-card {
+  margin-bottom: 20px;
 }
 
 .card-header {

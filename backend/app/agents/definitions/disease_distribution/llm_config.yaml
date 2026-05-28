@@ -1,0 +1,31 @@
+# ============================================================
+# LLM 配置文件
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+provider: siliconflow
+
+# Model: Provider/模型名称
+model: Qwen/Qwen2.5-7B-Instruct
+
+# Temperature: 0.0-2.0
+# 0.0-0.3: 准确性优先（医学建议）
+# 0.5-0.7: 平衡模式（推荐）
+# 0.8-1.0: 创意优先
+temperature: 0.2
+
+# Max Tokens: 正整数
+# 500-1000: 简短回答
+# 1500-2000: 中等长度（推荐）
+# 2500-4000: 详细回答
+max_tokens: 1000
+
+# Timeout: 秒数
+# 请求超时时间
+timeout: 30
+
+# Fallback Provider: 备用服务商（可选）
+fallback_provider: dashscope
+
+# Fallback Model: 备用模型（可选）
+fallback_model: qwen-plus

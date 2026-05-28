@@ -189,7 +189,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { patientApi, type Patient } from '@/api'
+import { patientApi, patientProfileApi, type Patient } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
@@ -238,13 +238,9 @@ const loadPatients = async () => {
       patients.value = res.patients || []
       total.value = res.total || 0
     }
-  } catch (error) {
-    // 模拟数据
-    patients.value = [
-      { id: 'p1', name: '张三', age: 65, gender: 'male', phone: '13800138001', id_card: '110101196001011234', address: '北京市东城区', created_at: new Date().toISOString() },
-      { id: 'p2', name: '李四', age: 58, gender: 'female', phone: '13800138003', id_card: '110101196601011234', address: '北京市西城区', created_at: new Date().toISOString() }
-    ]
-    total.value = 2
+  } catch {
+    patients.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -293,8 +289,8 @@ const handleSubmit = async () => {
     }
     dialogVisible.value = false
     loadPatients()
-  } catch (error) {
-    ElMessage.success('操作成功(模拟)')
+  } catch {
+    ElMessage.error('操作失败')
     dialogVisible.value = false
     loadPatients()
   }
@@ -307,8 +303,8 @@ const handleDelete = (row: Patient) => {
     try {
       await patientApi.delete(row.id)
       ElMessage.success('删除成功')
-    } catch (error) {
-      ElMessage.success('删除成功(模拟)')
+    } catch {
+      ElMessage.error('删除失败')
     }
     loadPatients()
   })
@@ -317,28 +313,46 @@ const handleDelete = (row: Patient) => {
 const handleViewProfile = async (row: Patient) => {
   currentPatientId.value = row.id
   try {
-    const res = await patientApi.getById(row.id)
+    const [panorama, vitalsRes] = await Promise.all([
+      patientProfileApi.getPanorama(row.id).catch(() => null),
+      patientApi.getVitals(row.id).catch(() => null)
+    ])
+
     currentProfile.value = {
-      basic_info: res,
-      diseases: [
-        { id: 'd1', disease_name: '2型糖尿病', diagnosed_date: '2020-03-15', status: 'active', notes: '血糖控制良好' },
-        { id: 'd2', disease_name: '高血压2级', diagnosed_date: '2019-08-20', status: 'active', notes: '间断服药' }
-      ],
-      medications: [
-        { id: 'm1', drug_name: '二甲双胍片', specification: '0.5g*20片', dosage: '0.5g', frequency: '每日2次', prescribing_doctor: '李主任', start_date: '2020-03-15' }
-      ],
-      vitals: [
-        { id: 'v1', vital_type: 'blood_sugar', value: 6.5, unit: 'mmol/L', recorded_at: '2024-03-15T08:00:00', notes: '空腹血糖' }
-      ],
-      lifestyle: { smoking: '无', drinking: '偶尔', exercise: '每周3次' }
+      basic_info: row,
+      diseases: panorama?.chronic_diseases?.map((d: any, i: number) => ({
+        id: `d${i}`,
+        disease_name: d.disease,
+        diagnosed_date: d.diagnosed_date || '',
+        status: d.control_status === '良好' ? 'controlled' : 'active',
+        notes: d.control_status || ''
+      })) || [],
+      medications: panorama?.current_medications?.map((m: any, i: number) => ({
+        id: `m${i}`,
+        drug_name: m.drug,
+        specification: m.dosage || '',
+        dosage: m.dosage || '',
+        frequency: m.frequency || '',
+        prescribing_doctor: '',
+        start_date: ''
+      })) || [],
+      vitals: vitalsRes?.records?.map((v: any) => ({
+        id: v.id,
+        vital_type: v.type,
+        value: v.value,
+        unit: v.unit,
+        recorded_at: v.recorded_at,
+        notes: ''
+      })) || [],
+      lifestyle: { smoking: '-', drinking: '-', exercise: '-' }
     }
-  } catch (error) {
+  } catch {
     currentProfile.value = {
       basic_info: row,
       diseases: [],
       medications: [],
       vitals: [],
-      lifestyle: { smoking: '无', drinking: '偶尔', exercise: '每周3次' }
+      lifestyle: { smoking: '-', drinking: '-', exercise: '-' }
     }
   }
   profileVisible.value = true

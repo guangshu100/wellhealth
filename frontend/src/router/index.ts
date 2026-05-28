@@ -163,6 +163,36 @@ const routes: RouteRecordRaw[] = [
     name: 'profile',
     component: () => import('@/views/ProfileView.vue'),
     meta: { requiresAuth: true, title: '个人中心' }
+  },
+  {
+    path: '/prescription-review',
+    name: 'prescription-review',
+    component: () => import('@/views/PrescriptionReviewView.vue'),
+    meta: { requiresAuth: true, title: '处方审核', roles: ['admin', 'doctor'] }
+  },
+  {
+    path: '/patient-profile',
+    name: 'patient-profile',
+    component: () => import('@/views/PatientProfileView.vue'),
+    meta: { requiresAuth: true, title: '患者画像', roles: ['admin', 'doctor', 'family'] }
+  },
+  {
+    path: '/data-insight',
+    name: 'data-insight',
+    component: () => import('@/views/DataInsightView.vue'),
+    meta: { requiresAuth: true, title: '数据洞察', roles: ['admin', 'doctor'] }
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true, title: '管理大屏', roles: ['admin', 'doctor'] }
+  },
+  {
+    path: '/health-plan',
+    name: 'health-plan',
+    component: () => import('@/views/HealthPlanView.vue'),
+    meta: { requiresAuth: true, title: '健康计划', roles: ['admin', 'doctor', 'patient', 'family'] }
   }
 ]
 

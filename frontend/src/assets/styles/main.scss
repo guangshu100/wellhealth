@@ -11,8 +11,8 @@
  * - 或直接 @import 但需要确保语法正确
  */
 
-// 引入主题变量
-@import './theme.scss';
+// 引入主题变量（使用 @use 替代已弃用的 @import）
+@use './theme.scss' as *;
 
 /* 以下为额外组件样式覆盖 (使用 CSS 变量) */
 

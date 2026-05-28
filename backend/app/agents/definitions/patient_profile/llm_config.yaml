@@ -1,0 +1,8 @@
+# 患者画像Agent LLM配置
+provider: siliconflow
+model: Qwen/Qwen2.5-7B-Instruct
+temperature: 0.4
+max_tokens: 2000
+timeout: 60
+fallback_provider: dashscope
+fallback_model: qwen-plus

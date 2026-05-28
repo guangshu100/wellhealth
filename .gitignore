@@ -42,6 +42,7 @@ node_modules/
 
 # Frontend build
 frontend/dist/
+frontend/node_modules/
 frontend/.DS_Store
 
 # Backend
@@ -102,3 +103,6 @@ dmypy.json
 
 # Rust
 Cargo.lock
+/docs/
+/deploy/
+/constraints/

@@ -33,6 +33,19 @@ from app.models.family_models import (
     FamilyMemberAlert,
 )
 
+from app.models.extension_models import (
+    InsuranceMedicineCatalog,
+    DrugInteraction,
+    MedicineDosageRange,
+    PatientExtension,
+    ClosedLoopRecord,
+    ElderlyCareRecord,
+    ChildHealthRecord,
+    MiningResultCache,
+    PrescriptionReviewResult,
+    HealthPlan,
+)
+
 __all__ = [
     # 基础模型
     "Patient",
@@ -61,4 +74,15 @@ __all__ = [
     "FamilyInvite",
     "FamilyPrivacySetting",
     "FamilyMemberAlert",
+    # 扩展模型 (Phase 0)
+    "InsuranceMedicineCatalog",
+    "DrugInteraction",
+    "MedicineDosageRange",
+    "PatientExtension",
+    "ClosedLoopRecord",
+    "ElderlyCareRecord",
+    "ChildHealthRecord",
+    "MiningResultCache",
+    "PrescriptionReviewResult",
+    "HealthPlan",
 ]

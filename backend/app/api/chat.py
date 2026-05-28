@@ -29,6 +29,8 @@ from app.services.agent_executor import (
 )
 from app.services.knowledge_base import knowledge_manager
 from app.services.safety_checker import SafetyChecker
+from sqlalchemy import text
+from app.utils.db_operations import execute_query, execute_update, execute_in_session
 
 logger = logging.getLogger(__name__)
 
@@ -41,31 +43,21 @@ router = APIRouter()
 def save_chat_session_to_db(
     session_id: str, patient_id: str = None, title: str = None, agent_type: str = None
 ) -> bool:
-    """保存会话到数据库"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-
-        db = SessionLocal()
-        try:
-            db.execute(
-                text("""
-                INSERT INTO chat_sessions (id, patient_id, agent_type, title, status, message_count, created_at, updated_at)
-                VALUES (:id, :patient_id, :agent_type, :title, 'active', 0, :now, :now)
-                ON DUPLICATE KEY UPDATE title = :title, updated_at = :now
-            """),
-                {
-                    "id": session_id,
-                    "patient_id": patient_id,
-                    "agent_type": agent_type,
-                    "title": title or "新对话",
-                    "now": datetime.now(),
-                },
-            )
-            db.commit()
-            return True
-        finally:
-            db.close()
+        return execute_update(
+            """
+            INSERT INTO chat_sessions (id, patient_id, agent_type, title, status, message_count, created_at, updated_at)
+            VALUES (:id, :patient_id, :agent_type, :title, 'active', 0, :now, :now)
+            ON DUPLICATE KEY UPDATE title = :title, updated_at = :now
+        """,
+            {
+                "id": session_id,
+                "patient_id": patient_id,
+                "agent_type": agent_type,
+                "title": title or "新对话",
+                "now": datetime.now(),
+            },
+        )
     except Exception as e:
         logger.warning(f"Failed to save session to database: {e}")
         return False
@@ -79,147 +71,112 @@ def save_message_to_db(
     sources: List[Dict] = None,
     safety_level: str = None,
 ) -> bool:
-    """保存消息到数据库"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
+        message_id = f"msg{uuid.uuid4().hex[:12]}"
+        now = datetime.now()
+        sources_json = json.dumps(sources) if sources else None
 
-        db = SessionLocal()
-        try:
-            message_id = f"msg{uuid.uuid4().hex[:12]}"
-            now = datetime.now()
+        insert_params = {
+            "id": message_id,
+            "session_id": session_id,
+            "role": role,
+            "content": content,
+            "agent_type": agent_type,
+            "sources": sources_json,
+            "safety_level": safety_level,
+            "created_at": now,
+        }
+        update_params = {"session_id": session_id, "now": now}
 
-            sources_json = json.dumps(sources) if sources else None
-
+        def _save(db):
             db.execute(
                 text("""
                 INSERT INTO chat_messages (id, session_id, role, content, agent_type, sources, safety_level, created_at)
                 VALUES (:id, :session_id, :role, :content, :agent_type, :sources, :safety_level, :created_at)
             """),
-                {
-                    "id": message_id,
-                    "session_id": session_id,
-                    "role": role,
-                    "content": content,
-                    "agent_type": agent_type,
-                    "sources": sources_json,
-                    "safety_level": safety_level,
-                    "created_at": now,
-                },
+                insert_params,
             )
-
-            # 更新会话消息数
             db.execute(
                 text("""
                 UPDATE chat_sessions 
                 SET message_count = message_count + 1, updated_at = :now 
                 WHERE id = :session_id
             """),
-                {"session_id": session_id, "now": now},
+                update_params,
             )
-
-            db.commit()
             return True
-        finally:
-            db.close()
+
+        result = execute_in_session(_save)
+        return result if result is not None else False
     except Exception as e:
         logger.warning(f"Failed to save message to database: {e}")
         return False
 
 
 def get_chat_history_from_db(session_id: str) -> List[Dict]:
-    """从数据库获取聊天历史"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-
-        db = SessionLocal()
-        try:
-            logger.info(f"[get_chat_history_from_db] Fetching history for session: {session_id}")
-            result = db.execute(
-                text("""
-                SELECT id, role, content, agent_type, sources, safety_level, created_at
-                FROM chat_messages 
-                WHERE session_id = :session_id
-                ORDER BY created_at ASC
-            """),
-                {"session_id": session_id},
-            )
-            rows = result.fetchall()
-            logger.info(f"[get_chat_history_from_db] Found {len(rows)} messages")
-            messages = []
-            for row in rows:
-                msg = dict(row._mapping)
-                if msg.get("sources"):
-                    try:
-                        msg["sources"] = json.loads(msg["sources"])
-                    except:
-                        msg["sources"] = []
-                messages.append(msg)
-            return messages
-        finally:
-            db.close()
+        rows = execute_query(
+            """
+            SELECT id, role, content, agent_type, sources, safety_level, created_at
+            FROM chat_messages 
+            WHERE session_id = :session_id
+            ORDER BY created_at ASC
+        """,
+            {"session_id": session_id},
+        )
+        if rows is None:
+            return []
+        messages = []
+        for msg in rows:
+            if msg.get("sources"):
+                try:
+                    msg["sources"] = json.loads(msg["sources"])
+                except:
+                    msg["sources"] = []
+            messages.append(msg)
+        return messages
     except Exception as e:
         logger.warning(f"Failed to get chat history from database: {e}")
         return []
 
 
 def get_sessions_from_db(patient_id: str = None, limit: int = 20) -> List[Dict]:
-    """获取会话列表"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-
-        db = SessionLocal()
-        try:
-            if patient_id:
-                result = db.execute(
-                    text("""
-                    SELECT id, patient_id, agent_type, title, status, message_count, created_at, updated_at
-                    FROM chat_sessions 
-                    WHERE patient_id = :patient_id
-                    ORDER BY updated_at DESC
-                    LIMIT :limit
-                """),
-                    {"patient_id": patient_id, "limit": limit},
-                )
-            else:
-                result = db.execute(
-                    text("""
-                    SELECT id, patient_id, agent_type, title, status, message_count, created_at, updated_at
-                    FROM chat_sessions 
-                    ORDER BY updated_at DESC
-                    LIMIT :limit
-                """),
-                    {"limit": limit},
-                )
-            rows = result.fetchall()
-            return [dict(row._mapping) for row in rows]
-        finally:
-            db.close()
+        if patient_id:
+            rows = execute_query(
+                """
+                SELECT id, patient_id, agent_type, title, status, message_count, created_at, updated_at
+                FROM chat_sessions 
+                WHERE patient_id = :patient_id
+                ORDER BY updated_at DESC
+                LIMIT :limit
+            """,
+                {"patient_id": patient_id, "limit": limit},
+            )
+        else:
+            rows = execute_query(
+                """
+                SELECT id, patient_id, agent_type, title, status, message_count, created_at, updated_at
+                FROM chat_sessions 
+                ORDER BY updated_at DESC
+                LIMIT :limit
+            """,
+                {"limit": limit},
+            )
+        return rows if rows is not None else []
     except Exception as e:
         logger.warning(f"Failed to get sessions from database: {e}")
         return []
 
 
 def update_session_title(session_id: str, title: str) -> bool:
-    """更新会话标题"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-
-        db = SessionLocal()
-        try:
-            db.execute(
-                text("""
-                UPDATE chat_sessions SET title = :title, updated_at = :now WHERE id = :id
-            """),
-                {"id": session_id, "title": title, "now": datetime.now()},
-            )
-            db.commit()
-            return True
-        finally:
-            db.close()
+        return execute_update(
+            """
+            UPDATE chat_sessions SET title = :title, updated_at = :now WHERE id = :id
+        """,
+            {"id": session_id, "title": title, "now": datetime.now()},
+        )
     except Exception as e:
         logger.warning(f"Failed to update session title: {e}")
         return False
@@ -452,20 +409,12 @@ async def delete_session(session_id: str):
     # 从内存中删除
     session_manager.delete_session(session_id)
 
-    # 从数据库中删除
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
+    def _delete(db):
+        db.execute(text("DELETE FROM chat_messages WHERE session_id = :id"), {"id": session_id})
+        db.execute(text("DELETE FROM chat_sessions WHERE id = :id"), {"id": session_id})
+        return True
 
-        db = SessionLocal()
-        try:
-            db.execute(text("DELETE FROM chat_messages WHERE session_id = :id"), {"id": session_id})
-            db.execute(text("DELETE FROM chat_sessions WHERE id = :id"), {"id": session_id})
-            db.commit()
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to delete session from database: {e}")
+    execute_in_session(_delete)
 
     return {"success": True, "message": "会话已删除"}
 

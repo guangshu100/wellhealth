@@ -198,6 +198,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { patientApi } from '@/api'
+import api from '@/api'
 
 interface Reminder {
   id: string
@@ -220,6 +221,7 @@ interface Patient {
 
 const patients = ref<Patient[]>([])
 const reminders = ref<Reminder[]>([])
+const takenRecords = ref<Set<string>>(new Set())
 const loading = ref(false)
 const showAddDialog = ref(false)
 const editingReminder = ref<Reminder | null>(null)
@@ -246,12 +248,27 @@ const todayDate = new Date().toLocaleDateString('zh-CN', {
 })
 
 const todayReminders = computed(() => {
-  // 模拟今日提醒数据
-  return [
-    { id: '1', drug_name: '二甲双胍片', dosage: '0.5g', frequency: '每日2次', time: '08:00', taken: true },
-    { id: '2', drug_name: '二甲双胍片', dosage: '0.5g', frequency: '每日2次', time: '18:00', taken: false },
-    { id: '3', drug_name: '厄贝沙坦', dosage: '150mg', frequency: '每日1次', time: '08:00', taken: true },
-  ]
+  const result: Array<{id: string; drug_name: string; dosage: string; frequency: string; time: string; taken: boolean}> = []
+  for (const r of reminders.value) {
+    if (r.status !== 'active') continue
+    for (const time of r.times) {
+      const timeMap: Record<string, string> = {
+        '早餐前': '07:00', '早餐后': '08:00',
+        '午餐前': '11:30', '午餐后': '12:30',
+        '晚餐前': '17:30', '晚餐后': '18:30',
+        '睡前': '21:00'
+      }
+      result.push({
+        id: `${r.id}_${time}`,
+        drug_name: r.drug_name,
+        dosage: r.dosage,
+        frequency: r.frequency,
+        time: timeMap[time] || time,
+        taken: takenRecords.value.has(`${r.id}_${time}`)
+      })
+    }
+  }
+  return result.sort((a, b) => a.time.localeCompare(b.time))
 })
 
 const stats = computed(() => ({
@@ -276,12 +293,8 @@ const loadPatients = async () => {
     } else {
       patients.value = res.patients || []
     }
-  } catch (e) {
-    // 使用备用数据
-    patients.value = [
-      { id: '1', name: '张三' },
-      { id: '2', name: '李四' }
-    ]
+  } catch {
+    patients.value = []
   }
 }
 
@@ -290,34 +303,24 @@ const loadReminders = async () => {
   
   loading.value = true
   try {
-    // 模拟数据
-    reminders.value = [
-      {
-        id: '1',
-        patient_id: queryForm.patient_id,
-        drug_name: '二甲双胍片',
-        dosage: '0.5g',
-        frequency: '每日2次',
-        times: ['早餐后', '晚餐后'],
-        start_date: '2024-03-01',
-        end_date: '2024-06-01',
-        status: 'active',
-        created_at: '2024-03-01'
-      },
-      {
-        id: '2',
-        patient_id: queryForm.patient_id,
-        drug_name: '厄贝沙坦片',
-        dosage: '150mg',
-        frequency: '每日1次',
-        times: ['早餐后'],
-        start_date: '2024-03-01',
-        status: 'active',
-        created_at: '2024-03-01'
-      }
-    ]
+    const res: any = await api.get(`/medication-reminders/${queryForm.patient_id}/medication-reminders`)
+    reminders.value = Array.isArray(res) ? res : []
+  } catch {
+    reminders.value = []
   } finally {
     loading.value = false
+  }
+  await loadTodayTaken()
+}
+
+const loadTodayTaken = async () => {
+  if (!queryForm.patient_id) return
+  try {
+    const res: any = await api.get(`/medication-reminders/${queryForm.patient_id}/medication-history`, { params: { days: 1 } })
+    const records = res.records || []
+    takenRecords.value = new Set(records.map((r: any) => `${r.drug_name}_${r.scheduled_time}`))
+  } catch {
+    takenRecords.value = new Set()
   }
 }
 
@@ -338,39 +341,35 @@ const deleteReminder = async (row: Reminder) => {
   await ElMessageBox.confirm('确定要删除这条提醒吗？', '提示', {
     type: 'warning'
   })
-  reminders.value = reminders.value.filter(r => r.id !== row.id)
-  ElMessage.success('删除成功')
+  try {
+    await api.delete(`/medication-reminders/${row.patient_id}/medication-reminders/${row.id}`)
+    ElMessage.success('删除成功')
+    await loadReminders()
+  } catch {
+    ElMessage.error('删除失败')
+  }
 }
 
-const saveReminder = () => {
+const saveReminder = async () => {
   if (!reminderForm.patient_id || !reminderForm.drug_name || !reminderForm.frequency) {
     ElMessage.warning('请填写必要信息')
     return
   }
   
-  if (editingReminder.value) {
-    // 更新
-    const idx = reminders.value.findIndex(r => r.id === editingReminder.value!.id)
-    if (idx !== -1) {
-      reminders.value[idx] = {
-        ...reminders.value[idx],
-        ...reminderForm
-      }
+  try {
+    if (editingReminder.value) {
+      await api.put(`/medication-reminders/${reminderForm.patient_id}/medication-reminders/${editingReminder.value.id}`, reminderForm)
+      ElMessage.success('更新成功')
+    } else {
+      await api.post(`/medication-reminders/${reminderForm.patient_id}/medication-reminders`, reminderForm)
+      ElMessage.success('添加成功')
     }
-    ElMessage.success('更新成功')
-  } else {
-    // 新增
-    reminders.value.push({
-      id: Date.now().toString(),
-      ...reminderForm,
-      status: 'active',
-      created_at: new Date().toISOString().split('T')[0]
-    })
-    ElMessage.success('添加成功')
+    showAddDialog.value = false
+    resetForm()
+    await loadReminders()
+  } catch {
+    ElMessage.error('操作失败')
   }
-  
-  showAddDialog.value = false
-  resetForm()
 }
 
 const resetForm = () => {
@@ -385,9 +384,18 @@ const resetForm = () => {
   reminderForm.notes = ''
 }
 
-const markTaken = (item: any) => {
-  item.taken = true
-  ElMessage.success('已标记为已服用')
+const markTaken = async (item: any) => {
+  if (!queryForm.patient_id) return
+  try {
+    const reminderId = item.id.split('_')[0]
+    await api.post(`/medication-reminders/${queryForm.patient_id}/medication-reminders/${reminderId}/mark-taken`, {
+      scheduled_time: item.time
+    })
+    item.taken = true
+    ElMessage.success('已标记为已服用')
+  } catch {
+    ElMessage.error('标记失败')
+  }
 }
 </script>
 

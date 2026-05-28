@@ -176,23 +176,36 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAgentStore } from '@/stores/agent'
 import { usePatientStore } from '@/stores/patient'
+import { dashboardApi, chatApi } from '@/api'
 import { QuestionFilled, Refresh } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const agentStore = useAgentStore()
 const patientStore = usePatientStore()
 
-const patientCount = ref(156)
-const conversationCount = ref(1234)
-const simulationCount = ref(89)
+const patientCount = ref(0)
+const conversationCount = ref(0)
+const simulationCount = ref(0)
 
 const agents = computed(() => agentStore.agents)
 const agentCount = computed(() => agentStore.agents.length)
 
 onMounted(async () => {
   await agentStore.initAgents()
-  await patientStore.fetchPatients({ page_size: 100 })
-  patientCount.value = patientStore.patients.length || 156
+  try {
+    const overview = await dashboardApi.getOverview()
+    patientCount.value = overview.total_patients || 0
+  } catch {}
+  try {
+    const res = await chatApi.getSessions(undefined, 1)
+    conversationCount.value = res.count || 0
+  } catch {}
+  try {
+    await patientStore.fetchPatients({ page_size: 1 })
+    if (patientCount.value === 0 && patientStore.patients) {
+      patientCount.value = (patientStore.patients as any).total || patientStore.patients.length || 0
+    }
+  } catch {}
 })
 
 const handleRefreshStatus = () => {

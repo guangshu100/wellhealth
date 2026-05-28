@@ -190,7 +190,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Camera } from '@element-plus/icons-vue'
-import axios from 'axios'
+import api, { familyApi, recipeApi } from '@/api'
 
 const fileInput = ref(null)
 const capturedImage = ref(null)
@@ -199,7 +199,8 @@ const textIngredients = ref('')
 const generating = ref(false)
 const generatedRecipe = ref(null)
 const familyRecipes = ref([])
-const familyId = ref('family_001') // 模拟家庭ID
+const familyId = ref('')
+const userInfo = ref<any>(null)
 
 const triggerUpload = () => {
   fileInput.value?.click()
@@ -223,23 +224,16 @@ const detectIngredients = async () => {
     ElMessage.warning('请先上传图片')
     return
   }
-  
   try {
-    // 转换为base64
     const base64 = capturedImage.value.split(',')[1]
-    
-    const res = await axios.post('/api/v1/recipe/detect-image', {
-      image: base64
-    })
-    
-    if (res.data.success) {
-      detectedIngredients.value = res.data.ingredients
-      ElMessage.success(`识别到 ${res.data.ingredients.length} 种食材`)
+    const res = await recipeApi.detectImage(base64)
+    if (res.success) {
+      detectedIngredients.value = res.ingredients
+      ElMessage.success(`识别到 ${res.ingredients.length} 种食材`)
     } else {
-      ElMessage.warning(res.data.message || '识别失败')
+      ElMessage.warning(res.message || '识别失败')
     }
-  } catch (e) {
-    console.error('识别失败', e)
+  } catch {
     ElMessage.error('识别失败，请重试')
   }
 }
@@ -249,19 +243,13 @@ const detectFromText = async () => {
     ElMessage.warning('请输入食材')
     return
   }
-  
   try {
-    const res = await axios.post('/api/v1/recipe/detect-text', {
-      text: textIngredients.value
-    })
-    
-    if (res.data.success) {
-      detectedIngredients.value = res.data.ingredients
-      ElMessage.success(`识别到 ${res.data.ingredients.length} 种食材`)
+    const res = await recipeApi.detectText(textIngredients.value)
+    if (res.success) {
+      detectedIngredients.value = res.ingredients
+      ElMessage.success(`识别到 ${res.ingredients.length} 种食材`)
     }
-  } catch (e) {
-    console.error('识别失败', e)
-  }
+  } catch {}
 }
 
 const generateRecipe = async () => {
@@ -269,26 +257,17 @@ const generateRecipe = async () => {
     ElMessage.warning('请先识别食材')
     return
   }
-  
   generating.value = true
   try {
     const ingredientNames = detectedIngredients.value.map(i => i.name)
-    
-    const res = await axios.post('/api/v1/recipe/generate', {
-      ingredients: ingredientNames,
-      preferences: {
-        difficulty: 'easy'
-      }
-    })
-    
-    if (res.data.success) {
-      generatedRecipe.value = res.data.recipe
+    const res = await recipeApi.generate({ ingredients: ingredientNames, preferences: { difficulty: 'easy' } })
+    if (res.success) {
+      generatedRecipe.value = res.recipe
       ElMessage.success('菜谱生成成功')
     } else {
       ElMessage.warning('生成失败')
     }
-  } catch (e) {
-    console.error('生成失败', e)
+  } catch {
     ElMessage.error('生成失败，请重试')
   } finally {
     generating.value = false
@@ -297,12 +276,15 @@ const generateRecipe = async () => {
 
 const saveToFamily = async () => {
   if (!generatedRecipe.value) return
-  
+  if (!familyId.value) {
+    ElMessage.warning('未找到家庭信息，请先创建家庭')
+    return
+  }
   try {
-    const res = await axios.post('/api/v1/recipe/family/create', {
+    const res = await recipeApi.createFamilyRecipe({
       family_id: familyId.value,
-      creator_id: 'user_001',
-      creator_name: '我',
+      creator_id: userInfo.value?.id || '',
+      creator_name: userInfo.value?.name || userInfo.value?.username || '未知用户',
       title: generatedRecipe.value.title,
       description: generatedRecipe.value.description,
       ingredients: generatedRecipe.value.ingredients,
@@ -312,36 +294,26 @@ const saveToFamily = async () => {
       nutrition: generatedRecipe.value.nutrition,
       is_shared: true
     })
-    
-    if (res.data.success) {
+    if (res.success) {
       ElMessage.success('已保存到家庭菜谱')
       await loadFamilyRecipes()
     }
-  } catch (e) {
-    ElMessage.error('保存失败')
-  }
+  } catch { ElMessage.error('保存失败') }
 }
 
 const loadFamilyRecipes = async () => {
+  if (!familyId.value) return
   try {
-    const res = await axios.get(`/api/v1/recipe/family/${familyId.value}/list`)
-    if (res.data.success) {
-      familyRecipes.value = res.data.recipes
-    }
-  } catch (e) {
-    console.error('加载家庭菜谱失败', e)
-  }
+    const res = await recipeApi.getFamilyRecipes(familyId.value)
+    if (res.success) { familyRecipes.value = res.recipes || [] }
+  } catch {}
 }
 
 const viewRecipeDetail = async (recipe) => {
   try {
-    const res = await axios.get(`/api/v1/recipe/${recipe.id}`)
-    if (res.data.success) {
-      generatedRecipe.value = res.data.recipe
-    }
-  } catch (e) {
-    console.error('加载菜谱详情失败', e)
-  }
+    const res = await recipeApi.getRecipeDetail(recipe.id)
+    if (res.success) { generatedRecipe.value = res.recipe }
+  } catch {}
 }
 
 const formatDate = (dateStr) => {
@@ -349,8 +321,22 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('zh-CN')
 }
 
-// 加载家庭菜谱
-loadFamilyRecipes()
+const loadUserFamily = async () => {
+  try {
+    const stored = localStorage.getItem('userInfo')
+    if (stored) {
+      userInfo.value = JSON.parse(stored)
+    }
+    if (userInfo.value?.id) {
+      const res = await familyApi.getUserFamilies(userInfo.value.id)
+      if (res.success && res.families?.length > 0) {
+        familyId.value = res.families[0].id
+      }
+    }
+  } catch {}
+}
+
+loadUserFamily().then(() => { loadFamilyRecipes() })
 </script>
 
 <style scoped>

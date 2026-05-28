@@ -378,9 +378,8 @@ class EnhancedAgentLoader:
 
     def _load_llm_config_from_db(self, agent_type: str) -> Optional[AgentLLMConfig]:
         try:
-            from app.utils.database import SessionLocal
-            db = SessionLocal()
-            try:
+            from app.utils.database import get_db_session
+            with get_db_session() as db:
                 from app.models.models import AgentLLMConfigModel
                 row = db.query(AgentLLMConfigModel).filter(
                     AgentLLMConfigModel.agent_type == agent_type,
@@ -397,8 +396,6 @@ class EnhancedAgentLoader:
                         fallback_model=row.fallback_model,
                         api_key=row.api_key,
                     )
-            finally:
-                db.close()
         except Exception as e:
             logger.debug(f"DB config lookup failed for {agent_type}: {e}")
         return None

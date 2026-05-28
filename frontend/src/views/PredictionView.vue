@@ -5,6 +5,16 @@
       <p>AI智能预测健康趋势和并发症风险</p>
     </el-card>
 
+    <el-card class="patient-select-card">
+      <el-form inline>
+        <el-form-item label="选择患者">
+          <el-select v-model="patientId" placeholder="请选择患者" @change="onPatientChange" style="width: 200px">
+            <el-option v-for="p in patients" :key="p.id" :label="p.name" :value="p.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <el-tabs v-model="activeTab" type="border-card">
       <!-- 血糖预测 -->
       <el-tab-pane label="🩸 血糖预测" name="blood-sugar">
@@ -220,9 +230,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { patientApi, predictionApi } from '@/api'
 
-const patientId = ref('patient_001')
+const patientId = ref('')
+const patients = ref([])
 
 const activeTab = ref('blood-sugar')
 const predictionDays = ref(7)
@@ -236,68 +247,49 @@ const interventionPrediction = ref(null)
 const predictionHistory = ref([])
 
 const predictBloodSugar = async () => {
+  if (!patientId.value) { ElMessage.warning('请先选择患者'); return }
   predicting.value = true
   try {
-    const res = await axios.post('/api/v1/prediction/blood-sugar', {
-      patient_id: patientId.value,
-      days: predictionDays.value
-    })
-    if (res.data.success) {
-      bloodSugarPrediction.value = res.data.prediction
+    const res = await predictionApi.predictBloodSugar(patientId.value, predictionDays.value)
+    if (res.success) {
+      bloodSugarPrediction.value = res.prediction
       ElMessage.success('预测完成')
     }
-  } catch (e) {
-    ElMessage.error('预测失败')
-  } finally {
-    predicting.value = false
-  }
+  } catch { ElMessage.error('预测失败') } finally { predicting.value = false }
 }
 
 const predictComplication = async () => {
+  if (!patientId.value) { ElMessage.warning('请先选择患者'); return }
   predicting.value = true
   try {
-    const res = await axios.post('/api/v1/prediction/complication', {
-      patient_id: patientId.value,
-      complication_type: complicationType.value
-    })
-    if (res.data.success) {
-      complicationPrediction.value = res.data.prediction
+    const res = await predictionApi.predictComplication(patientId.value, complicationType.value)
+    if (res.success) {
+      complicationPrediction.value = res.prediction
       ElMessage.success('评估完成')
     }
-  } catch (e) {
-    ElMessage.error('评估失败')
-  } finally {
-    predicting.value = false
-  }
+  } catch { ElMessage.error('评估失败') } finally { predicting.value = false }
 }
 
 const predictIntervention = async () => {
+  if (!patientId.value) { ElMessage.warning('请先选择患者'); return }
   predicting.value = true
   try {
-    const res = await axios.post('/api/v1/prediction/intervention-effect', {
-      patient_id: patientId.value,
-      intervention_type: interventionType.value
-    })
-    if (res.data.success) {
-      interventionPrediction.value = res.data.prediction
+    const res = await predictionApi.predictInterventionEffect(patientId.value, interventionType.value)
+    if (res.success) {
+      interventionPrediction.value = res.prediction
       ElMessage.success('预测完成')
     }
-  } catch (e) {
-    ElMessage.error('预测失败')
-  } finally {
-    predicting.value = false
-  }
+  } catch { ElMessage.error('预测失败') } finally { predicting.value = false }
 }
 
 const loadHistory = async () => {
+  if (!patientId.value) return
   try {
-    const res = await axios.get(`/api/v1/prediction/history/${patientId.value}`)
-    if (res.data.success) {
-      predictionHistory.value = res.data.predictions
+    const res = await predictionApi.getPredictionHistory(patientId.value)
+    if (res.success) {
+      predictionHistory.value = res.predictions
     }
-  } catch (e) {
-    console.error('加载历史失败', e)
-  }
+  } catch {}
 }
 
 const formatDate = (dateStr) => {
@@ -345,8 +337,23 @@ const getChangeClass = (change) => {
   return 'change-neutral'
 }
 
-onMounted(() => {
+const loadPatients = async () => {
+  try {
+    const res = await patientApi.getList()
+    patients.value = Array.isArray(res) ? res : (res.patients || [])
+    if (patients.value.length > 0 && !patientId.value) {
+      patientId.value = patients.value[0].id
+      loadHistory()
+    }
+  } catch {}
+}
+
+const onPatientChange = () => {
   loadHistory()
+}
+
+onMounted(() => {
+  loadPatients()
 })
 </script>
 
@@ -358,6 +365,10 @@ onMounted(() => {
 .header-card {
   margin-bottom: 20px;
   text-align: center;
+}
+
+.patient-select-card {
+  margin-bottom: 20px;
 }
 
 .prediction-result {

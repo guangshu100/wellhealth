@@ -6,6 +6,8 @@ from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Query
+from sqlalchemy import text
+from app.utils.db_operations import execute_query, execute_update, execute_in_session
 
 logger = logging.getLogger(__name__)
 
@@ -61,40 +63,33 @@ def get_knowledge_list_from_db(
 ) -> List[dict]:
     """从数据库获取知识列表"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            conditions = []
-            params = {"skip": skip, "limit": limit}
-            
-            if search:
-                conditions.append("(title LIKE :search OR content LIKE :search)")
-                params["search"] = f"%{search}%"
-            
-            if knowledge_type:
-                conditions.append("type = :type")
-                params["type"] = knowledge_type
-            
-            if status:
-                conditions.append("status = :status")
-                params["status"] = status
-            
-            where_clause = " AND ".join(conditions) if conditions else "1=1"
-            
-            result = db.execute(text(f"""
-                SELECT id, title, content, type, tags, source, author, status,
-                       view_count, helpful_count, created_at, updated_at, published_at
-                FROM knowledge_base 
-                WHERE {where_clause}
-                ORDER BY created_at DESC
-                LIMIT :limit OFFSET :skip
-            """), params)
-            
-            rows = result.fetchall()
-            return [dict(row._mapping) for row in rows]
-        finally:
-            db.close()
+        conditions = []
+        params = {"skip": skip, "limit": limit}
+
+        if search:
+            conditions.append("(title LIKE :search OR content LIKE :search)")
+            params["search"] = f"%{search}%"
+
+        if knowledge_type:
+            conditions.append("type = :type")
+            params["type"] = knowledge_type
+
+        if status:
+            conditions.append("status = :status")
+            params["status"] = status
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+        result = execute_query(f"""
+            SELECT id, title, content, type, tags, source, author, status,
+                   view_count, helpful_count, created_at, updated_at, published_at
+            FROM knowledge_base 
+            WHERE {where_clause}
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :skip
+        """, params)
+
+        return result or []
     except Exception as e:
         logger.warning(f"Failed to get knowledge list from database: {e}")
         return []
@@ -103,34 +98,28 @@ def get_knowledge_list_from_db(
 def count_knowledge_from_db(search: str = None, knowledge_type: str = None, status: str = None) -> int:
     """统计知识数量"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            conditions = []
-            params = {}
-            
-            if search:
-                conditions.append("(title LIKE :search OR content LIKE :search)")
-                params["search"] = f"%{search}%"
-            
-            if knowledge_type:
-                conditions.append("type = :type")
-                params["type"] = knowledge_type
-            
-            if status:
-                conditions.append("status = :status")
-                params["status"] = status
-            
-            where_clause = " AND ".join(conditions) if conditions else "1=1"
-            
-            result = db.execute(text(f"""
-                SELECT COUNT(*) as count FROM knowledge_base WHERE {where_clause}
-            """), params)
-            row = result.fetchone()
-            return row[0] if row else 0
-        finally:
-            db.close()
+        conditions = []
+        params = {}
+
+        if search:
+            conditions.append("(title LIKE :search OR content LIKE :search)")
+            params["search"] = f"%{search}%"
+
+        if knowledge_type:
+            conditions.append("type = :type")
+            params["type"] = knowledge_type
+
+        if status:
+            conditions.append("status = :status")
+            params["status"] = status
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+        result = execute_query(f"""
+            SELECT COUNT(*) as count FROM knowledge_base WHERE {where_clause}
+        """, params, fetch_one=True)
+
+        return result['count'] if result else 0
     except Exception as e:
         logger.warning(f"Failed to count knowledge: {e}")
         return 0
@@ -139,22 +128,14 @@ def count_knowledge_from_db(search: str = None, knowledge_type: str = None, stat
 def get_knowledge_by_id_from_db(knowledge_id: str) -> dict:
     """从数据库获取单条知识"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            result = db.execute(text("""
-                SELECT id, title, content, type, tags, source, author, status,
-                       view_count, helpful_count, created_at, updated_at, published_at
-                FROM knowledge_base 
-                WHERE id = :id
-            """), {"id": knowledge_id})
-            row = result.fetchone()
-            if row:
-                return dict(row._mapping)
-            return None
-        finally:
-            db.close()
+        result = execute_query("""
+            SELECT id, title, content, type, tags, source, author, status,
+                   view_count, helpful_count, created_at, updated_at, published_at
+            FROM knowledge_base 
+            WHERE id = :id
+        """, {"id": knowledge_id}, fetch_one=True)
+
+        return result
     except Exception as e:
         logger.warning(f"Failed to get knowledge from database: {e}")
         return None
@@ -163,38 +144,33 @@ def get_knowledge_by_id_from_db(knowledge_id: str) -> dict:
 def create_knowledge_to_db(knowledge_data: dict) -> dict:
     """创建知识到数据库"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
         import uuid
-        db = SessionLocal()
-        try:
-            knowledge_id = f"kb{uuid.uuid4().hex[:8]}"
-            now = datetime.now()
-            
-            tags_json = None
-            if knowledge_data.get("tags"):
-                import json
-                tags_json = json.dumps(knowledge_data["tags"])
-            
-            db.execute(text("""
-                INSERT INTO knowledge_base (id, title, content, type, tags, source, author, status, created_at, updated_at)
-                VALUES (:id, :title, :content, :type, :tags, :source, :author, :status, :created_at, :updated_at)
-            """), {
-                "id": knowledge_id,
-                "title": knowledge_data.get("title"),
-                "content": knowledge_data.get("content"),
-                "type": knowledge_data.get("type", "other"),
-                "tags": tags_json,
-                "source": knowledge_data.get("source"),
-                "author": knowledge_data.get("author"),
-                "status": knowledge_data.get("status", "draft"),
-                "created_at": now,
-                "updated_at": now
-            })
-            db.commit()
+        knowledge_id = f"kb{uuid.uuid4().hex[:8]}"
+        now = datetime.now()
+
+        tags_json = None
+        if knowledge_data.get("tags"):
+            import json
+            tags_json = json.dumps(knowledge_data["tags"])
+
+        success = execute_update("""
+            INSERT INTO knowledge_base (id, title, content, type, tags, source, author, status, created_at, updated_at)
+            VALUES (:id, :title, :content, :type, :tags, :source, :author, :status, :created_at, :updated_at)
+        """, {
+            "id": knowledge_id,
+            "title": knowledge_data.get("title"),
+            "content": knowledge_data.get("content"),
+            "type": knowledge_data.get("type", "other"),
+            "tags": tags_json,
+            "source": knowledge_data.get("source"),
+            "author": knowledge_data.get("author"),
+            "status": knowledge_data.get("status", "draft"),
+            "created_at": now,
+            "updated_at": now
+        })
+        if success:
             return {**knowledge_data, "id": knowledge_id, "created_at": now, "updated_at": now}
-        finally:
-            db.close()
+        return None
     except Exception as e:
         logger.warning(f"Failed to create knowledge: {e}")
         return None
@@ -203,61 +179,67 @@ def create_knowledge_to_db(knowledge_data: dict) -> dict:
 def update_knowledge_to_db(knowledge_id: str, knowledge_data: dict) -> dict:
     """更新知识到数据库"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
         import json
-        db = SessionLocal()
-        try:
-            now = datetime.now()
-            
-            updates = []
-            params = {"id": knowledge_id, "updated_at": now}
-            
-            if "title" in knowledge_data:
-                updates.append("title = :title")
-                params["title"] = knowledge_data["title"]
-            
-            if "content" in knowledge_data:
-                updates.append("content = :content")
-                params["content"] = knowledge_data["content"]
-            
-            if "type" in knowledge_data:
-                updates.append("type = :type")
-                params["type"] = knowledge_data["type"]
-            
-            if "tags" in knowledge_data:
-                updates.append("tags = :tags")
-                params["tags"] = json.dumps(knowledge_data["tags"]) if knowledge_data["tags"] else None
-            
-            if "source" in knowledge_data:
-                updates.append("source = :source")
-                params["source"] = knowledge_data["source"]
-            
-            if "author" in knowledge_data:
-                updates.append("author = :author")
-                params["author"] = knowledge_data["author"]
-            
-            if "status" in knowledge_data:
-                updates.append("status = :status")
-                params["status"] = knowledge_data["status"]
-                if knowledge_data["status"] == "published":
-                    updates.append("published_at = :published_at")
-                    params["published_at"] = now
-            
-            updates.append("updated_at = :updated_at")
-            
-            if not updates:
-                return get_knowledge_by_id_from_db(knowledge_id)
-            
-            db.execute(text(f"""
-                UPDATE knowledge_base 
-                SET {', '.join(updates)}
-                WHERE id = :id
-            """), params)
-            db.commit()
+        now = datetime.now()
+
+        updates = []
+        params = {"id": knowledge_id, "updated_at": now}
+
+        if "title" in knowledge_data:
+            updates.append("title = :title")
+            params["title"] = knowledge_data["title"]
+
+        if "content" in knowledge_data:
+            updates.append("content = :content")
+            params["content"] = knowledge_data["content"]
+
+        if "type" in knowledge_data:
+            updates.append("type = :type")
+            params["type"] = knowledge_data["type"]
+
+        if "tags" in knowledge_data:
+            updates.append("tags = :tags")
+            params["tags"] = json.dumps(knowledge_data["tags"]) if knowledge_data["tags"] else None
+
+        if "source" in knowledge_data:
+            updates.append("source = :source")
+            params["source"] = knowledge_data["source"]
+
+        if "author" in knowledge_data:
+            updates.append("author = :author")
+            params["author"] = knowledge_data["author"]
+
+        if "status" in knowledge_data:
+            updates.append("status = :status")
+            params["status"] = knowledge_data["status"]
+            if knowledge_data["status"] == "published":
+                updates.append("published_at = :published_at")
+                params["published_at"] = now
+
+        updates.append("updated_at = :updated_at")
+
+        if not updates:
             return get_knowledge_by_id_from_db(knowledge_id)
-        finally:
-            db.close()
+
+        update_sql = f"""
+            UPDATE knowledge_base 
+            SET {', '.join(updates)}
+            WHERE id = :id
+        """
+
+        def _update(db):
+            db.execute(text(update_sql), params)
+            result = db.execute(text("""
+                SELECT id, title, content, type, tags, source, author, status,
+                       view_count, helpful_count, created_at, updated_at, published_at
+                FROM knowledge_base 
+                WHERE id = :id
+            """), {"id": knowledge_id})
+            row = result.fetchone()
+            return dict(row._mapping) if row else None
+
+        result = execute_in_session(_update)
+        return result
     except Exception as e:
         logger.warning(f"Failed to update knowledge: {e}")
         return None
@@ -266,15 +248,7 @@ def update_knowledge_to_db(knowledge_id: str, knowledge_data: dict) -> dict:
 def delete_knowledge_from_db(knowledge_id: str) -> bool:
     """从数据库删除知识"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            db.execute(text("DELETE FROM knowledge_base WHERE id = :id"), {"id": knowledge_id})
-            db.commit()
-            return True
-        finally:
-            db.close()
+        return execute_update("DELETE FROM knowledge_base WHERE id = :id", {"id": knowledge_id})
     except Exception as e:
         logger.warning(f"Failed to delete knowledge: {e}")
         return False
@@ -283,17 +257,9 @@ def delete_knowledge_from_db(knowledge_id: str) -> bool:
 def increment_view_count(knowledge_id: str) -> bool:
     """增加查看次数"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            db.execute(text("""
-                UPDATE knowledge_base SET view_count = view_count + 1 WHERE id = :id
-            """), {"id": knowledge_id})
-            db.commit()
-            return True
-        finally:
-            db.close()
+        return execute_update("""
+            UPDATE knowledge_base SET view_count = view_count + 1 WHERE id = :id
+        """, {"id": knowledge_id})
     except Exception as e:
         logger.warning(f"Failed to increment view count: {e}")
         return False
@@ -302,17 +268,9 @@ def increment_view_count(knowledge_id: str) -> bool:
 def increment_helpful_count(knowledge_id: str) -> bool:
     """增加点赞次数"""
     try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            db.execute(text("""
-                UPDATE knowledge_base SET helpful_count = helpful_count + 1 WHERE id = :id
-            """), {"id": knowledge_id})
-            db.commit()
-            return True
-        finally:
-            db.close()
+        return execute_update("""
+            UPDATE knowledge_base SET helpful_count = helpful_count + 1 WHERE id = :id
+        """, {"id": knowledge_id})
     except Exception as e:
         logger.warning(f"Failed to increment helpful count: {e}")
         return False

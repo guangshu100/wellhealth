@@ -20,10 +20,13 @@ from app.api import (
     users,
     captcha,
     agent_config,
+    workflow,
 )
 from app.api import medication_reminder, report as report_api, prescription, medication_purchase
 from app.api import chronic, calorie, cognitive
 from app.api import family, recipe, medication_enhanced, health, prediction
+from app.api import data_mining, dashboard
+from app.api import prescription_review, patient_profile, health_plan
 from app.utils.database import init_db
 
 logging.basicConfig(
@@ -91,6 +94,12 @@ app.include_router(health.router, tags=["健康数据"])
 app.include_router(prediction.router, tags=["健康预测"])
 app.include_router(captcha.router, prefix="/api/v1/captcha", tags=["验证码"])
 app.include_router(agent_config.router, prefix="/api/v1/admin", tags=["Agent配置"])
+app.include_router(workflow.router, prefix="/api/v1/workflow", tags=["工作流编排"])
+app.include_router(data_mining.router, prefix="/api/v1/data-mining", tags=["数据挖掘"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["管理报表"])
+app.include_router(prescription_review.router, prefix="/api/v1/prescription/review", tags=["处方审核"])
+app.include_router(patient_profile.router, prefix="/api/v1/patients", tags=["患者画像"])
+app.include_router(health_plan.router, prefix="/api/v1/health-plans", tags=["健康计划"])
 
 
 @app.get("/")

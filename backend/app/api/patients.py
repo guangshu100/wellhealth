@@ -3,11 +3,14 @@
 完整的患者CRUD、健康档案、体征管理
 """
 import logging
+import uuid
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
+from sqlalchemy import text
+from app.utils.db_operations import execute_query, execute_update, execute_in_session
 
 logger = logging.getLogger(__name__)
 
@@ -122,462 +125,278 @@ class HealthProfile(BaseModel):
 
 # ============ 数据库辅助函数 ============
 def get_patients_from_db(search: str = None, skip: int = 0, limit: int = 20) -> List[dict]:
-    """从数据库获取患者列表"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            if search:
-                result = db.execute(text("""
-                    SELECT id, user_id, name, age, gender, phone, id_card, address,
-                           emergency_contact, emergency_phone, blood_type, height, weight,
-                           allergies, family_history, lifestyle, status,
-                           created_at, updated_at
-                    FROM patients 
-                    WHERE name LIKE :search OR phone LIKE :search OR id_card LIKE :search
-                    ORDER BY created_at DESC
-                    LIMIT :limit OFFSET :skip
-                """), {"search": f"%{search}%", "limit": limit, "skip": skip})
-            else:
-                result = db.execute(text("""
-                    SELECT id, user_id, name, age, gender, phone, id_card, address,
-                           emergency_contact, emergency_phone, blood_type, height, weight,
-                           allergies, family_history, lifestyle, status,
-                           created_at, updated_at
-                    FROM patients 
-                    ORDER BY created_at DESC
-                    LIMIT :limit OFFSET :skip
-                """), {"limit": limit, "skip": skip})
-            
-            rows = result.fetchall()
-            return [dict(row._mapping) for row in rows]
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to get patients from database: {e}")
-        return []
+    if search:
+        sql = """
+            SELECT id, user_id, name, age, gender, phone, id_card, address,
+                   emergency_contact, emergency_phone, blood_type, height, weight,
+                   allergies, family_history, lifestyle, status,
+                   created_at, updated_at
+            FROM patients 
+            WHERE name LIKE :search OR phone LIKE :search OR id_card LIKE :search
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :skip
+        """
+        params = {"search": f"%{search}%", "limit": limit, "skip": skip}
+    else:
+        sql = """
+            SELECT id, user_id, name, age, gender, phone, id_card, address,
+                   emergency_contact, emergency_phone, blood_type, height, weight,
+                   allergies, family_history, lifestyle, status,
+                   created_at, updated_at
+            FROM patients 
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :skip
+        """
+        params = {"limit": limit, "skip": skip}
+    return execute_query(sql, params) or []
 
 
 def get_patient_by_id_from_db(patient_id: str) -> dict:
-    """从数据库获取单个患者"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            result = db.execute(text("""
-                SELECT id, user_id, name, age, gender, phone, id_card, address,
-                       emergency_contact, emergency_phone, blood_type, height, weight,
-                       allergies, family_history, lifestyle, status,
-                       created_at, updated_at
-                FROM patients 
-                WHERE id = :id
-            """), {"id": patient_id})
-            row = result.fetchone()
-            if row:
-                return dict(row._mapping)
-            return None
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to get patient from database: {e}")
-        return None
+    sql = """
+        SELECT id, user_id, name, age, gender, phone, id_card, address,
+               emergency_contact, emergency_phone, blood_type, height, weight,
+               allergies, family_history, lifestyle, status,
+               created_at, updated_at
+        FROM patients 
+        WHERE id = :id
+    """
+    return execute_query(sql, {"id": patient_id}, fetch_one=True)
 
 
 def count_patients_from_db(search: str = None) -> int:
-    """统计患者数量"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            if search:
-                result = db.execute(text("""
-                    SELECT COUNT(*) as count FROM patients 
-                    WHERE name LIKE :search OR phone LIKE :search OR id_card LIKE :search
-                """), {"search": f"%{search}%"})
-            else:
-                result = db.execute(text("SELECT COUNT(*) as count FROM patients"))
-            row = result.fetchone()
-            return row[0] if row else 0
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to count patients: {e}")
-        return 0
+    if search:
+        sql = "SELECT COUNT(*) as count FROM patients WHERE name LIKE :search OR phone LIKE :search OR id_card LIKE :search"
+        params = {"search": f"%{search}%"}
+    else:
+        sql = "SELECT COUNT(*) as count FROM patients"
+        params = None
+    result = execute_query(sql, params, fetch_one=True)
+    return result['count'] if result else 0
 
 
 def create_patient_to_db(patient_data: dict) -> dict:
-    """创建患者到数据库"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        import uuid
-        db = SessionLocal()
-        try:
-            patient_id = f"p{uuid.uuid4().hex[:8]}"
-            now = datetime.now()
-            
-            db.execute(text("""
-                INSERT INTO patients (id, name, age, gender, phone, id_card, address,
-                                    emergency_contact, emergency_phone, created_at, updated_at)
-                VALUES (:id, :name, :age, :gender, :phone, :id_card, :address,
-                        :emergency_contact, :emergency_phone, :created_at, :updated_at)
-            """), {
-                "id": patient_id,
-                "name": patient_data.get("name"),
-                "age": patient_data.get("age"),
-                "gender": patient_data.get("gender"),
-                "phone": patient_data.get("phone"),
-                "id_card": patient_data.get("id_card"),
-                "address": patient_data.get("address"),
-                "emergency_contact": patient_data.get("emergency_contact"),
-                "emergency_phone": patient_data.get("emergency_phone"),
-                "created_at": now,
-                "updated_at": now
-            })
-            db.commit()
-            return {**patient_data, "id": patient_id, "created_at": now, "updated_at": now}
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to create patient: {e}")
-        return None
+    patient_id = f"p{uuid.uuid4().hex[:8]}"
+    now = datetime.now()
+    if execute_update("""
+        INSERT INTO patients (id, name, age, gender, phone, id_card, address,
+                            emergency_contact, emergency_phone, created_at, updated_at)
+        VALUES (:id, :name, :age, :gender, :phone, :id_card, :address,
+                :emergency_contact, :emergency_phone, :created_at, :updated_at)
+    """, {
+        "id": patient_id,
+        "name": patient_data.get("name"),
+        "age": patient_data.get("age"),
+        "gender": patient_data.get("gender"),
+        "phone": patient_data.get("phone"),
+        "id_card": patient_data.get("id_card"),
+        "address": patient_data.get("address"),
+        "emergency_contact": patient_data.get("emergency_contact"),
+        "emergency_phone": patient_data.get("emergency_phone"),
+        "created_at": now,
+        "updated_at": now
+    }):
+        return {**patient_data, "id": patient_id, "created_at": now, "updated_at": now}
+    return None
 
 
 def update_patient_to_db(patient_id: str, patient_data: dict) -> dict:
-    """更新患者到数据库"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            now = datetime.now()
-            db.execute(text("""
-                UPDATE patients 
-                SET name = :name, age = :age, gender = :gender, phone = :phone,
-                    id_card = :id_card, address = :address,
-                    emergency_contact = :emergency_contact, emergency_phone = :emergency_phone,
-                    updated_at = :updated_at
-                WHERE id = :id
-            """), {
-                "id": patient_id,
-                "name": patient_data.get("name"),
-                "age": patient_data.get("age"),
-                "gender": patient_data.get("gender"),
-                "phone": patient_data.get("phone"),
-                "id_card": patient_data.get("id_card"),
-                "address": patient_data.get("address"),
-                "emergency_contact": patient_data.get("emergency_contact"),
-                "emergency_phone": patient_data.get("emergency_phone"),
-                "updated_at": now
-            })
-            db.commit()
-            return get_patient_by_id_from_db(patient_id)
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to update patient: {e}")
-        return None
+    now = datetime.now()
+    if execute_update("""
+        UPDATE patients 
+        SET name = :name, age = :age, gender = :gender, phone = :phone,
+            id_card = :id_card, address = :address,
+            emergency_contact = :emergency_contact, emergency_phone = :emergency_phone,
+            updated_at = :updated_at
+        WHERE id = :id
+    """, {
+        "id": patient_id,
+        "name": patient_data.get("name"),
+        "age": patient_data.get("age"),
+        "gender": patient_data.get("gender"),
+        "phone": patient_data.get("phone"),
+        "id_card": patient_data.get("id_card"),
+        "address": patient_data.get("address"),
+        "emergency_contact": patient_data.get("emergency_contact"),
+        "emergency_phone": patient_data.get("emergency_phone"),
+        "updated_at": now
+    }):
+        return get_patient_by_id_from_db(patient_id)
+    return None
 
 
 def delete_patient_from_db(patient_id: str) -> bool:
-    """从数据库删除患者"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            db.execute(text("DELETE FROM patients WHERE id = :id"), {"id": patient_id})
-            db.commit()
-            return True
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to delete patient: {e}")
-        return False
+    return execute_update("DELETE FROM patients WHERE id = :id", {"id": patient_id})
 
 
 # ============ 疾病记录数据库函数 ============
 
 def get_diseases_from_db(patient_id: str) -> List[dict]:
-    """从数据库获取患者的疾病记录"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            result = db.execute(text("""
-                SELECT id, patient_id, disease_name, disease_type, icd_code,
-                       diagnosed_date, status, severity, notes, created_at, updated_at
-                FROM disease_records 
-                WHERE patient_id = :patient_id
-                ORDER BY diagnosed_date DESC
-            """), {"patient_id": patient_id})
-            rows = result.fetchall()
-            return [dict(row._mapping) for row in rows]
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to get diseases from database: {e}")
-        return []
+    sql = """
+        SELECT id, patient_id, disease_name, disease_type, icd_code,
+               diagnosed_date, status, severity, notes, created_at, updated_at
+        FROM disease_records 
+        WHERE patient_id = :patient_id
+        ORDER BY diagnosed_date DESC
+    """
+    return execute_query(sql, {"patient_id": patient_id}) or []
 
 
 def create_disease_to_db(disease_data: dict) -> dict:
-    """创建疾病记录到数据库"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        import uuid
-        db = SessionLocal()
-        try:
-            disease_id = f"d{uuid.uuid4().hex[:8]}"
-            now = datetime.now()
-            
-            db.execute(text("""
-                INSERT INTO disease_records (id, patient_id, disease_name, disease_type,
-                    icd_code, diagnosed_date, status, severity, notes, created_at, updated_at)
-                VALUES (:id, :patient_id, :disease_name, :disease_type,
-                    :icd_code, :diagnosed_date, :status, :severity, :notes, :created_at, :updated_at)
-            """), {
-                "id": disease_id,
-                "patient_id": disease_data.get("patient_id"),
-                "disease_name": disease_data.get("disease_name"),
-                "disease_type": disease_data.get("disease_type", "chronic"),
-                "icd_code": disease_data.get("icd_code"),
-                "diagnosed_date": disease_data.get("diagnosed_date"),
-                "status": disease_data.get("status", "active"),
-                "severity": disease_data.get("severity", "moderate"),
-                "notes": disease_data.get("notes"),
-                "created_at": now,
-                "updated_at": now
-            })
-            db.commit()
-            return {**disease_data, "id": disease_id, "created_at": now, "updated_at": now}
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to create disease: {e}")
-        return None
+    disease_id = f"d{uuid.uuid4().hex[:8]}"
+    now = datetime.now()
+    if execute_update("""
+        INSERT INTO disease_records (id, patient_id, disease_name, disease_type,
+            icd_code, diagnosed_date, status, severity, notes, created_at, updated_at)
+        VALUES (:id, :patient_id, :disease_name, :disease_type,
+            :icd_code, :diagnosed_date, :status, :severity, :notes, :created_at, :updated_at)
+    """, {
+        "id": disease_id,
+        "patient_id": disease_data.get("patient_id"),
+        "disease_name": disease_data.get("disease_name"),
+        "disease_type": disease_data.get("disease_type", "chronic"),
+        "icd_code": disease_data.get("icd_code"),
+        "diagnosed_date": disease_data.get("diagnosed_date"),
+        "status": disease_data.get("status", "active"),
+        "severity": disease_data.get("severity", "moderate"),
+        "notes": disease_data.get("notes"),
+        "created_at": now,
+        "updated_at": now
+    }):
+        return {**disease_data, "id": disease_id, "created_at": now, "updated_at": now}
+    return None
 
 
 def update_disease_to_db(disease_id: str, disease_data: dict) -> dict:
-    """更新疾病记录到数据库"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            now = datetime.now()
-            db.execute(text("""
-                UPDATE disease_records 
-                SET disease_name = :disease_name, disease_type = :disease_type,
-                    icd_code = :icd_code, diagnosed_date = :diagnosed_date,
-                    status = :status, severity = :severity, notes = :notes,
-                    updated_at = :updated_at
-                WHERE id = :id
-            """), {
-                "id": disease_id,
-                "disease_name": disease_data.get("disease_name"),
-                "disease_type": disease_data.get("disease_type"),
-                "icd_code": disease_data.get("icd_code"),
-                "diagnosed_date": disease_data.get("diagnosed_date"),
-                "status": disease_data.get("status"),
-                "severity": disease_data.get("severity"),
-                "notes": disease_data.get("notes"),
-                "updated_at": now
-            })
-            db.commit()
-            result = db.execute(text("SELECT * FROM disease_records WHERE id = :id"), {"id": disease_id})
-            row = result.fetchone()
-            return dict(row._mapping) if row else None
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to update disease: {e}")
-        return None
+    now = datetime.now()
+    def callback(db):
+        db.execute(text("""
+            UPDATE disease_records 
+            SET disease_name = :disease_name, disease_type = :disease_type,
+                icd_code = :icd_code, diagnosed_date = :diagnosed_date,
+                status = :status, severity = :severity, notes = :notes,
+                updated_at = :updated_at
+            WHERE id = :id
+        """), {
+            "id": disease_id,
+            "disease_name": disease_data.get("disease_name"),
+            "disease_type": disease_data.get("disease_type"),
+            "icd_code": disease_data.get("icd_code"),
+            "diagnosed_date": disease_data.get("diagnosed_date"),
+            "status": disease_data.get("status"),
+            "severity": disease_data.get("severity"),
+            "notes": disease_data.get("notes"),
+            "updated_at": now
+        })
+        result = db.execute(text("SELECT * FROM disease_records WHERE id = :id"), {"id": disease_id})
+        row = result.fetchone()
+        return dict(row._mapping) if row else None
+    return execute_in_session(callback)
 
 
 def delete_disease_from_db(disease_id: str) -> bool:
-    """从数据库删除疾病记录"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            db.execute(text("DELETE FROM disease_records WHERE id = :id"), {"id": disease_id})
-            db.commit()
-            return True
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to delete disease: {e}")
-        return False
+    return execute_update("DELETE FROM disease_records WHERE id = :id", {"id": disease_id})
 
 
 # ============ 用药记录数据库函数 ============
 
 def get_medications_from_db(patient_id: str) -> List[dict]:
-    """从数据库获取患者的用药记录"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            result = db.execute(text("""
-                SELECT id, patient_id, drug_name, specification, dosage, frequency,
-                       route, start_date, end_date, prescribing_doctor, hospital,
-                       prescription_no, status, notes, created_at, updated_at
-                FROM medication_records 
-                WHERE patient_id = :patient_id
-                ORDER BY start_date DESC
-            """), {"patient_id": patient_id})
-            rows = result.fetchall()
-            return [dict(row._mapping) for row in rows]
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to get medications from database: {e}")
-        return []
+    sql = """
+        SELECT id, patient_id, drug_name, specification, dosage, frequency,
+               route, start_date, end_date, prescribing_doctor, hospital,
+               prescription_no, status, notes, created_at, updated_at
+        FROM medication_records 
+        WHERE patient_id = :patient_id
+        ORDER BY start_date DESC
+    """
+    return execute_query(sql, {"patient_id": patient_id}) or []
 
 
 def create_medication_to_db(medication_data: dict) -> dict:
-    """创建用药记录到数据库"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        import uuid
-        db = SessionLocal()
-        try:
-            medication_id = f"m{uuid.uuid4().hex[:8]}"
-            now = datetime.now()
-            
-            db.execute(text("""
-                INSERT INTO medication_records (id, patient_id, drug_name, specification,
-                    dosage, frequency, route, start_date, end_date, prescribing_doctor,
-                    hospital, prescription_no, status, notes, created_at, updated_at)
-                VALUES (:id, :patient_id, :drug_name, :specification,
-                    :dosage, :frequency, :route, :start_date, :end_date, :prescribing_doctor,
-                    :hospital, :prescription_no, :status, :notes, :created_at, :updated_at)
-            """), {
-                "id": medication_id,
-                "patient_id": medication_data.get("patient_id"),
-                "drug_name": medication_data.get("drug_name"),
-                "specification": medication_data.get("specification"),
-                "dosage": medication_data.get("dosage"),
-                "frequency": medication_data.get("frequency"),
-                "route": medication_data.get("route"),
-                "start_date": medication_data.get("start_date"),
-                "end_date": medication_data.get("end_date"),
-                "prescribing_doctor": medication_data.get("prescribing_doctor"),
-                "hospital": medication_data.get("hospital"),
-                "prescription_no": medication_data.get("prescription_no"),
-                "status": medication_data.get("status", "active"),
-                "notes": medication_data.get("notes"),
-                "created_at": now,
-                "updated_at": now
-            })
-            db.commit()
-            return {**medication_data, "id": medication_id, "created_at": now, "updated_at": now}
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to create medication: {e}")
-        return None
+    medication_id = f"m{uuid.uuid4().hex[:8]}"
+    now = datetime.now()
+    if execute_update("""
+        INSERT INTO medication_records (id, patient_id, drug_name, specification,
+            dosage, frequency, route, start_date, end_date, prescribing_doctor,
+            hospital, prescription_no, status, notes, created_at, updated_at)
+        VALUES (:id, :patient_id, :drug_name, :specification,
+            :dosage, :frequency, :route, :start_date, :end_date, :prescribing_doctor,
+            :hospital, :prescription_no, :status, :notes, :created_at, :updated_at)
+    """, {
+        "id": medication_id,
+        "patient_id": medication_data.get("patient_id"),
+        "drug_name": medication_data.get("drug_name"),
+        "specification": medication_data.get("specification"),
+        "dosage": medication_data.get("dosage"),
+        "frequency": medication_data.get("frequency"),
+        "route": medication_data.get("route"),
+        "start_date": medication_data.get("start_date"),
+        "end_date": medication_data.get("end_date"),
+        "prescribing_doctor": medication_data.get("prescribing_doctor"),
+        "hospital": medication_data.get("hospital"),
+        "prescription_no": medication_data.get("prescription_no"),
+        "status": medication_data.get("status", "active"),
+        "notes": medication_data.get("notes"),
+        "created_at": now,
+        "updated_at": now
+    }):
+        return {**medication_data, "id": medication_id, "created_at": now, "updated_at": now}
+    return None
 
 
 def delete_medication_from_db(medication_id: str) -> bool:
-    """从数据库删除用药记录"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        db = SessionLocal()
-        try:
-            db.execute(text("DELETE FROM medication_records WHERE id = :id"), {"id": medication_id})
-            db.commit()
-            return True
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to delete medication: {e}")
-        return False
+    return execute_update("DELETE FROM medication_records WHERE id = :id", {"id": medication_id})
 
 
 # ============ 体征记录数据库函数 ============
 
 def get_vitals_from_db(patient_id: str, vital_type: str = None, days: int = 30) -> List[dict]:
-    """从数据库获取患者的体征记录"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        from datetime import timedelta
-        db = SessionLocal()
-        try:
-            start_date = datetime.now() - timedelta(days=days)
-            if vital_type:
-                result = db.execute(text("""
-                    SELECT id, patient_id, vital_type, value, unit, reference_min, reference_max,
-                           status, recorded_at, source, device_id, notes, created_at
-                    FROM vital_records 
-                    WHERE patient_id = :patient_id AND vital_type = :vital_type AND recorded_at >= :start_date
-                    ORDER BY recorded_at DESC
-                """), {"patient_id": patient_id, "vital_type": vital_type, "start_date": start_date})
-            else:
-                result = db.execute(text("""
-                    SELECT id, patient_id, vital_type, value, unit, reference_min, reference_max,
-                           status, recorded_at, source, device_id, notes, created_at
-                    FROM vital_records 
-                    WHERE patient_id = :patient_id AND recorded_at >= :start_date
-                    ORDER BY recorded_at DESC
-                """), {"patient_id": patient_id, "start_date": start_date})
-            rows = result.fetchall()
-            return [dict(row._mapping) for row in rows]
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to get vitals from database: {e}")
-        return []
+    start_date = datetime.now() - timedelta(days=days)
+    if vital_type:
+        sql = """
+            SELECT id, patient_id, vital_type, value, unit, reference_min, reference_max,
+                   status, recorded_at, source, device_id, notes, created_at
+            FROM vital_records 
+            WHERE patient_id = :patient_id AND vital_type = :vital_type AND recorded_at >= :start_date
+            ORDER BY recorded_at DESC
+        """
+        params = {"patient_id": patient_id, "vital_type": vital_type, "start_date": start_date}
+    else:
+        sql = """
+            SELECT id, patient_id, vital_type, value, unit, reference_min, reference_max,
+                   status, recorded_at, source, device_id, notes, created_at
+            FROM vital_records 
+            WHERE patient_id = :patient_id AND recorded_at >= :start_date
+            ORDER BY recorded_at DESC
+        """
+        params = {"patient_id": patient_id, "start_date": start_date}
+    return execute_query(sql, params) or []
 
 
 def create_vital_to_db(vital_data: dict) -> dict:
-    """创建体征记录到数据库"""
-    try:
-        from sqlalchemy import text
-        from app.utils.database import SessionLocal
-        import uuid
-        db = SessionLocal()
-        try:
-            vital_id = f"v{uuid.uuid4().hex[:8]}"
-            now = datetime.now()
-            
-            db.execute(text("""
-                INSERT INTO vital_records (id, patient_id, vital_type, value, unit,
-                    reference_min, reference_max, status, recorded_at, source, device_id, notes, created_at)
-                VALUES (:id, :patient_id, :vital_type, :value, :unit,
-                    :reference_min, :reference_max, :status, :recorded_at, :source, :device_id, :notes, :created_at)
-            """), {
-                "id": vital_id,
-                "patient_id": vital_data.get("patient_id"),
-                "vital_type": vital_data.get("vital_type"),
-                "value": vital_data.get("value"),
-                "unit": vital_data.get("unit"),
-                "reference_min": vital_data.get("reference_min"),
-                "reference_max": vital_data.get("reference_max"),
-                "status": vital_data.get("status", "normal"),
-                "recorded_at": vital_data.get("recorded_at", now),
-                "source": vital_data.get("source", "manual"),
-                "device_id": vital_data.get("device_id"),
-                "notes": vital_data.get("notes"),
-                "created_at": now
-            })
-            db.commit()
-            return {**vital_data, "id": vital_id, "created_at": now}
-        finally:
-            db.close()
-    except Exception as e:
-        logger.warning(f"Failed to create vital: {e}")
-        return None
+    vital_id = f"v{uuid.uuid4().hex[:8]}"
+    now = datetime.now()
+    if execute_update("""
+        INSERT INTO vital_records (id, patient_id, vital_type, value, unit,
+            reference_min, reference_max, status, recorded_at, source, device_id, notes, created_at)
+        VALUES (:id, :patient_id, :vital_type, :value, :unit,
+            :reference_min, :reference_max, :status, :recorded_at, :source, :device_id, :notes, :created_at)
+    """, {
+        "id": vital_id,
+        "patient_id": vital_data.get("patient_id"),
+        "vital_type": vital_data.get("vital_type"),
+        "value": vital_data.get("value"),
+        "unit": vital_data.get("unit"),
+        "reference_min": vital_data.get("reference_min"),
+        "reference_max": vital_data.get("reference_max"),
+        "status": vital_data.get("status", "normal"),
+        "recorded_at": vital_data.get("recorded_at", now),
+        "source": vital_data.get("source", "manual"),
+        "device_id": vital_data.get("device_id"),
+        "notes": vital_data.get("notes"),
+        "created_at": now
+    }):
+        return {**vital_data, "id": vital_id, "created_at": now}
+    return None
 
 
 # 内存存储（作为Fallback）

@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios'
-import { useRouter } from 'vue-router'
 
 const api: AxiosInstance = axios.create({
   baseURL: '/api/v1',
@@ -1184,6 +1183,324 @@ export const agentConfigApi = {
     error?: string
   }> {
     return api.post('/admin/agent-configs/test-connection', data)
+  }
+}
+
+// ============ 处方审核 API ============
+
+export interface PrescriptionReviewIssue {
+  type: string
+  severity: string
+  drugs: string[]
+  detail: string
+  recommendation: string
+  layer?: string
+}
+
+export interface PrescriptionReviewSuggestion {
+  type: string
+  drug?: string
+  alternative?: string
+  category?: string
+  reimbursement_rate?: number
+  detail: string
+  layer?: string
+}
+
+export interface PrescriptionReviewResult {
+  review_id: string
+  status: string
+  layers: {
+    rule_engine: { status: string; issues: PrescriptionReviewIssue[]; suggestions: PrescriptionReviewSuggestion[] }
+    insurance_policy: { status: string; issues: PrescriptionReviewIssue[]; suggestions: PrescriptionReviewSuggestion[]; coverage: Array<{ drug: string; category: string; reimbursement_rate: number; restrictions: string | null }> }
+    individualized: { status: string; issues: PrescriptionReviewIssue[]; suggestions: PrescriptionReviewSuggestion[] }
+  }
+  all_issues: PrescriptionReviewIssue[]
+  all_suggestions: PrescriptionReviewSuggestion[]
+  summary: string
+  reviewed_at: string
+}
+
+export const prescriptionReviewApi = {
+  reviewPrescription(data: {
+    patient_id: string
+    medications: Array<{ drug_name: string; dosage: string; frequency: string; route?: string }>
+    diagnosis?: string[]
+    patient_context?: Record<string, unknown>
+  }): Promise<PrescriptionReviewResult> {
+    return api.post('/prescription/review/review', data)
+  },
+
+  getReviewResult(reviewId: string): Promise<{
+    review_id: string
+    results: Array<{
+      reviewer_type: string
+      status: string
+      issues: Record<string, unknown>
+      suggestions: Record<string, unknown>
+      reviewed_at: string
+    }>
+  }> {
+    return api.get(`/prescription/review/result/${reviewId}`)
+  }
+}
+
+// ============ 患者画像 API ============
+
+export interface PatientPanorama {
+  patient_id: string
+  patient_name: string
+  generated_at: string
+  chronic_diseases: Array<{ disease: string; diagnosed_date: string | null; control_status: string }>
+  current_medications: Array<{ drug: string; dosage: string | null; frequency: string | null }>
+  vital_trends: Record<string, { latest: unknown; trend: string; target: string | null; data_points: number }>
+  interventions: Array<{ type: string; date: string | null; detail: string }>
+  missing_indicators: Array<{ indicator: string; missing_days: number; severity: string }>
+  risk_prediction: { complication_risk: string; hospitalization_risk: string }
+}
+
+export const patientProfileApi = {
+  getPanorama(patientId: string): Promise<PatientPanorama> {
+    return api.get(`/patients/${patientId}/panorama`)
+  }
+}
+
+// ============ 数据挖掘 API ============
+
+export interface DiseaseTrajectoryResult {
+  patient_id?: string
+  time_range: string
+  trajectory: Array<{ date: string; values: Record<string, unknown> }>
+  transition_matrix: { states: string[]; matrix: number[][] }
+  data_points: number
+  disease_distribution?: Array<{ disease: string; count: number }>
+}
+
+export interface IndicatorPatternResult {
+  patient_id: string
+  patterns: Record<string, {
+    values: Array<{ date: string; value: number }>
+    mean: number
+    std: number
+    min: number
+    max: number
+    correlations: Record<string, number>
+    seasonality: { detected: boolean; period: number | null; autocorrelation: number }
+    message?: string
+  }>
+}
+
+export interface WhatIfResult {
+  patient_id: string
+  intervention: Record<string, unknown>
+  baseline: Record<string, number>
+  prediction: Array<{ month: number; blood_sugar: number; risk_level: string }>
+  shap_values: Record<string, number>
+  confidence: number
+}
+
+export interface ComorbidityResult {
+  network: {
+    nodes: Array<{ id: string; count: number; prevalence: number }>
+    edges: Array<{ source: string; target: string; weight: number; pmi: number }>
+  }
+  communities: Array<{ id: number; members: string[]; size: number }>
+  total_patients: number
+}
+
+export interface EpidemiologyResult {
+  indicator: string
+  mean: number
+  std: number
+  alerts: Array<{ patient_id: string; value: number; z_score: number; severity: string }>
+  affected_patients: number
+  total_records: number
+}
+
+export const dataMiningApi = {
+  diseaseTrajectory(data: { patient_id?: string; time_range?: string }): Promise<DiseaseTrajectoryResult> {
+    return api.post('/data-mining/disease-trajectory', data)
+  },
+
+  indicatorPattern(data: { patient_id: string; indicators?: string[] }): Promise<IndicatorPatternResult> {
+    return api.post('/data-mining/indicator-pattern', data)
+  },
+
+  whatifSimulation(data: { patient_id: string; intervention: Record<string, unknown> }): Promise<WhatIfResult> {
+    return api.post('/data-mining/whatif-simulation', data)
+  },
+
+  comorbidityNetwork(data: { patient_ids?: string[]; min_support?: number }): Promise<ComorbidityResult> {
+    return api.post('/data-mining/comorbidity-network', data)
+  },
+
+  epidemiologyAlert(data: { region?: string; indicator?: string; threshold?: number }): Promise<EpidemiologyResult> {
+    return api.post('/data-mining/epidemiology-alert', data)
+  },
+
+  getResult(taskId: string): Promise<{
+    task_id: string
+    query_type: string
+    result: Record<string, unknown>
+    computed_at: string
+  }> {
+    return api.get(`/data-mining/results/${taskId}`)
+  }
+}
+
+// ============ 管理报表 API ============
+
+export interface MacroStats {
+  total_patients: number
+  new_this_month: number
+  active_patients: number
+  active_rate: number
+}
+
+export interface DiseaseDistribution {
+  by_disease: Array<{ disease: string; count: number }>
+}
+
+export interface AdherenceStats {
+  overall_rate: number
+  total_records: number
+  taken_records: number
+}
+
+export interface ResourceUtilization {
+  total_prescriptions: number
+  avg_medications_per_patient: number
+}
+
+export interface DashboardOverview {
+  total_patients: number
+  active_patients: number
+  top_diseases: Array<{ disease: string; count: number }>
+}
+
+export const dashboardApi = {
+  getMacroStats(): Promise<MacroStats> {
+    return api.get('/dashboard/macro-stats')
+  },
+
+  getDiseaseDistribution(): Promise<DiseaseDistribution> {
+    return api.get('/dashboard/disease-distribution')
+  },
+
+  getAdherenceStats(): Promise<AdherenceStats> {
+    return api.get('/dashboard/adherence-stats')
+  },
+
+  getResourceUtilization(): Promise<ResourceUtilization> {
+    return api.get('/dashboard/resource-utilization')
+  },
+
+  getOverview(): Promise<DashboardOverview> {
+    return api.get('/dashboard/overview')
+  }
+}
+
+// ============ 工作流 API ============
+
+export interface WorkflowStatus {
+  status: string
+  available_stages: string[]
+  available_agents: string[]
+  version: string
+}
+
+export interface PipelineResult {
+  success: boolean
+  results?: Record<string, unknown>
+  final_output?: string
+  iterations?: number
+  error?: string
+}
+
+export const workflowApi = {
+  getStatus(): Promise<WorkflowStatus> {
+    return api.get('/workflow/status')
+  },
+
+  executePipeline(data: {
+    task: string
+    stages?: string[]
+    max_iterations?: number
+    quality_threshold?: number
+    context?: Record<string, unknown>
+  }): Promise<PipelineResult> {
+    return api.post('/workflow/pipeline', data)
+  },
+
+  getAgents(): Promise<{
+    total: number
+    agents: Array<{
+      type: string
+      name: string
+      role: string
+      specialty: string[]
+      emoji: string
+      color: string
+      llm_provider: string
+      llm_model: string
+    }>
+  }> {
+    return api.get('/workflow/agents')
+  }
+}
+
+// ============ 健康计划 API ============
+
+export interface HealthPlanGoal {
+  description: string
+  target?: string
+  achieved: boolean
+}
+
+export interface HealthPlanMilestone {
+  description: string
+  target_date?: string
+  completed: boolean
+}
+
+export interface HealthPlanItem {
+  id: string
+  patient_id: string
+  plan_type: string
+  goals: HealthPlanGoal[]
+  milestones: HealthPlanMilestone[]
+  status: string
+  start_date: string | null
+  end_date: string | null
+  created_at: string | null
+}
+
+export const healthPlanApi = {
+  getPatientPlans(patientId: string, status?: string): Promise<{ plans: HealthPlanItem[] }> {
+    return api.get(`/health-plans/patient/${patientId}`, { params: { status } })
+  },
+
+  createPlan(data: {
+    patient_id: string
+    plan_type: string
+    goals?: Array<{ description: string; target?: string; achieved?: boolean }>
+    milestones?: Array<{ description: string; target_date?: string; completed?: boolean }>
+    start_date?: string
+    end_date?: string
+  }): Promise<HealthPlanItem> {
+    return api.post('/health-plans/create', data)
+  },
+
+  updatePlan(planId: string, data: {
+    status?: string
+    goals?: Array<{ description: string; target?: string; achieved?: boolean }>
+    milestones?: Array<{ description: string; target_date?: string; completed?: boolean }>
+  }): Promise<Partial<HealthPlanItem>> {
+    return api.put(`/health-plans/${planId}`, data)
+  },
+
+  deletePlan(planId: string): Promise<{ success: boolean }> {
+    return api.delete(`/health-plans/${planId}`)
   }
 }
 

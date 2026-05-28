@@ -1,0 +1,23 @@
+# ============================================================
+# LLM 配置文件 - 健康计划协调 Agent
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+provider: siliconflow
+
+# Model: Provider/模型名称
+model: Qwen/Qwen2.5-7B-Instruct
+
+# Temperature: 0.0-2.0
+# 协调型Agent需要稳定输出，适度创造性
+temperature: 0.4
+
+# Max Tokens: 正整数
+max_tokens: 2000
+
+# Timeout: 秒数
+timeout: 60
+
+# Fallback: 主 Provider 不可用时切换
+fallback_provider: dashscope
+fallback_model: qwen-plus

@@ -60,7 +60,13 @@ class Settings(BaseSettings):
     EMAIL_USERNAME: str = ""
     EMAIL_PASSWORD: str = ""
 
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8443",
+        "http://localhost:1420",
+        "https://localhost:1420",
+    ]
 
     @property
     def DATABASE_URL(self) -> str:

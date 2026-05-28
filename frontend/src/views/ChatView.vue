@@ -230,52 +230,53 @@
             </el-radio-group>
             
             <!-- Agent选择器 -->
-            <el-dropdown @command="handleAgentSelect" trigger="click" v-if="chatMode !== 'single'">
-              <el-button size="small" type="primary" plain>
-                {{ selectedAgentNames.length > 0 ? `已选${selectedAgentNames.length}个Agent` : '选择Agent' }}
-                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <div class="agent-select-header">
-                    <el-checkbox 
-                      v-model="selectAllAgents" 
-                      @change="handleSelectAllAgents"
-                    >
-                      全选/取消
-                    </el-checkbox>
-                    <span class="agent-count">{{ selectedAgentNames.length }}/{{ agentStore.agents.length }}</span>
-                  </div>
-                  <el-dropdown-item 
-                    v-for="agent in agentStore.agents" 
-                    :key="agent.type"
-                    :command="agent.type"
-                  >
-                    <el-checkbox 
-                      :model-value="selectedAgents.includes(agent.type)" 
-                      @click.stop="toggleAgent(agent.type)"
-                    >
-                      <span class="agent-option">
-                        <span class="agent-emoji-small">{{ agent.emoji }}</span>
-                        <span>{{ agent.name }}</span>
-                      </span>
-                    </el-checkbox>
-                  </el-dropdown-item>
-                  <el-dropdown-item divided disabled>
-                    <div class="turns-selector">
-                      <span>对话轮数:</span>
-                      <el-input-number 
-                        v-model="dialogueTurns" 
-                        :min="1" 
-                        :max="5" 
-                        size="small"
-                        @click.stop
-                      />
-                    </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
+            <el-popover
+              placement="bottom-start"
+              :width="520"
+              trigger="click"
+              v-if="chatMode !== 'single'"
+            >
+              <template #reference>
+                <el-button size="small" type="primary" plain>
+                  {{ selectedAgentNames.length > 0 ? `已选${selectedAgentNames.length}个Agent` : '选择Agent' }}
+                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
               </template>
-            </el-dropdown>
+              <div class="agent-select-panel">
+                <div class="agent-select-header">
+                  <el-checkbox 
+                    v-model="selectAllAgents" 
+                    @change="handleSelectAllAgents"
+                  >
+                    全选/取消
+                  </el-checkbox>
+                  <span class="agent-count">{{ selectedAgentNames.length }}/{{ agentStore.agents.length }}</span>
+                </div>
+                <div class="agent-grid">
+                  <div
+                    v-for="agent in agentStore.agents"
+                    :key="agent.type"
+                    class="agent-grid-item"
+                    :class="{ 'agent-grid-item--selected': selectedAgents.includes(agent.type) }"
+                    @click="toggleAgent(agent.type)"
+                  >
+                    <span class="agent-emoji-small">{{ agent.emoji }}</span>
+                    <span class="agent-grid-name">{{ agent.name }}</span>
+                  </div>
+                </div>
+                <div class="agent-select-footer">
+                  <div class="turns-selector">
+                    <span>对话轮数:</span>
+                    <el-input-number 
+                      v-model="dialogueTurns" 
+                      :min="1" 
+                      :max="5" 
+                      size="small"
+                    />
+                  </div>
+                </div>
+              </div>
+            </el-popover>
             
             <!-- 智能选择开关 -->
             <el-tooltip content="开启后由AI自动选择合适的Agent" placement="top">
@@ -377,11 +378,6 @@ const handleSelectAllAgents = (checked: boolean) => {
   } else {
     selectedAgents.value = []
   }
-}
-
-// Agent选择下拉菜单命令
-const handleAgentSelect = (command: string) => {
-  // 这个方法被dropdown的command触发，但实际处理在toggleAgent中
 }
 
 // 会话历史列表
@@ -1707,12 +1703,20 @@ watch(() => agentStore.messages.length, () => {
 }
 
 /* Agent选择器 */
+.agent-select-panel {
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
 .agent-select-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 8px 4px 12px;
   border-bottom: 1px solid #ebeef5;
+  margin-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .agent-count {
@@ -1720,14 +1724,67 @@ watch(() => agentStore.messages.length, () => {
   color: #909399;
 }
 
-.agent-option {
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 320px;
+  padding: 4px 0;
+  flex: 1;
+}
+
+.agent-grid-item {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-grid-item:hover {
+  background-color: #f5f7fa;
+  border-color: #dcdfe6;
+}
+
+.agent-grid-item--selected {
+  background-color: #ecf5ff;
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.agent-grid-item--selected:hover {
+  background-color: #d9ecff;
+}
+
+.agent-grid-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .agent-emoji-small {
   font-size: 14px;
+  flex-shrink: 0;
+}
+
+.agent-select-footer {
+  border-top: 1px solid #ebeef5;
+  padding-top: 10px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.agent-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .turns-selector {

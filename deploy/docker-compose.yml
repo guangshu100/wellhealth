@@ -71,6 +71,42 @@ services:
     volumes:
       - ./backend:/app
 
+  # Celery Worker - 异步任务执行
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks worker --loglevel=info
+    environment:
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+      - NEO4J_URI=bolt://neo4j:7687
+      - QDRANT_HOST=qdrant
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+
+  # Celery Beat - 定时任务调度
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks beat --loglevel=info
+    environment:
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+
   # 前端
   frontend:
     build:

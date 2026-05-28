@@ -1,0 +1,24 @@
+# ============================================================
+# LLM 配置文件 - 动机教练 Agent
+# ============================================================
+
+# Provider: openai | anthropic | siliconflow | ollama | dashscope
+# 动机教练使用GPT-4o-mini，更好的共情和自然语言能力
+provider: openai
+
+# Model: Provider/模型名称
+model: gpt-4o-mini
+
+# Temperature: 0.0-2.0
+# 动机教练需要较高的温度，产生更自然、更有温度的回复
+temperature: 0.6
+
+# Max Tokens: 正整数
+max_tokens: 1500
+
+# Timeout: 秒数
+timeout: 30
+
+# Fallback: 主 Provider 不可用时切换
+fallback_provider: siliconflow
+fallback_model: Qwen/Qwen2.5-7B-Instruct

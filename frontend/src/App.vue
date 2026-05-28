@@ -15,19 +15,11 @@
           <span>首页</span>
         </router-link>
 
-        <!-- AI问答 -->
         <router-link to="/chat" class="menu-item" :class="{ active: $route.path === '/chat' }">
           <el-icon><ChatDotRound /></el-icon>
           <span>AI问答</span>
         </router-link>
 
-        <!-- 干预模拟 -->
-        <router-link to="/simulation" class="menu-item" :class="{ active: $route.path === '/simulation' }">
-          <el-icon><Cpu /></el-icon>
-          <span>干预模拟</span>
-        </router-link>
-
-        <!-- 健康管理下拉 -->
         <el-dropdown v-if="!isDemoMode" trigger="hover" class="menu-dropdown">
           <router-link to="/health-data" class="menu-item">
             <el-icon><FirstAidKit /></el-icon>
@@ -49,28 +41,33 @@
                 </router-link>
               </el-dropdown-item>
               <el-dropdown-item>
-                <router-link to="/family">
-                  <el-icon><UserFilled /></el-icon>
-                  亲情守护
-                </router-link>
-              </el-dropdown-item>
-              <el-dropdown-item>
                 <router-link to="/reminder">
                   <el-icon><Bell /></el-icon>
                   用药提醒
                 </router-link>
               </el-dropdown-item>
               <el-dropdown-item>
-                <router-link to="/calorie">
+                <router-link to="/chronic">
                   <el-icon><Sugar /></el-icon>
+                  慢病管理
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/calorie">
+                  <el-icon><Food /></el-icon>
                   卡路里跟踪
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/family">
+                  <el-icon><UserFilled /></el-icon>
+                  亲情守护
                 </router-link>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
 
-        <!-- 认知健康下拉 -->
         <el-dropdown v-if="!isDemoMode" trigger="hover" class="menu-dropdown">
           <router-link to="/cognitive/assessment" class="menu-item">
             <el-icon><DataAnalysis /></el-icon>
@@ -101,7 +98,6 @@
           </template>
         </el-dropdown>
 
-        <!-- 生活服务下拉 -->
         <el-dropdown v-if="!isDemoMode" trigger="hover" class="menu-dropdown">
           <router-link to="/recipe" class="menu-item">
             <el-icon><Food /></el-icon>
@@ -126,7 +122,6 @@
           </template>
         </el-dropdown>
 
-        <!-- 医疗数据下拉 -->
         <el-dropdown trigger="hover" class="menu-dropdown">
           <router-link to="/prescription" class="menu-item">
             <el-icon><Document /></el-icon>
@@ -151,17 +146,77 @@
           </template>
         </el-dropdown>
 
-        <!-- 患者管理 -->
-        <router-link to="/patient-manage" class="menu-item" :class="{ active: $route.path === '/patient-manage' }">
-          <el-icon><User /></el-icon>
-          <span>患者管理</span>
-        </router-link>
+        <el-dropdown v-if="!isDemoMode" trigger="hover" class="menu-dropdown">
+          <router-link to="/prescription-review" class="menu-item">
+            <el-icon><Cpu /></el-icon>
+            <span>智能医疗</span>
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </router-link>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item>
+                <router-link to="/simulation">
+                  <el-icon><Cpu /></el-icon>
+                  干预模拟
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/prescription-review">
+                  <el-icon><Document /></el-icon>
+                  处方审核
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/patient-profile">
+                  <el-icon><DataAnalysis /></el-icon>
+                  患者画像
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/data-insight">
+                  <el-icon><TrendCharts /></el-icon>
+                  数据洞察
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/health-plan">
+                  <el-icon><FirstAidKit /></el-icon>
+                  健康计划
+                </router-link>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
 
-        <!-- 系统管理 -->
-        <router-link to="/admin" class="menu-item" :class="{ active: $route.path === '/admin' || $route.path === '/agent-config' }">
-          <el-icon><Setting /></el-icon>
-          <span>系统管理</span>
-        </router-link>
+        <el-dropdown v-if="!isDemoMode" trigger="hover" class="menu-dropdown">
+          <router-link to="/patient-manage" class="menu-item">
+            <el-icon><User /></el-icon>
+            <span>管理中心</span>
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </router-link>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item>
+                <router-link to="/patient-manage">
+                  <el-icon><User /></el-icon>
+                  患者管理
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/dashboard">
+                  <el-icon><DataAnalysis /></el-icon>
+                  管理大屏
+                </router-link>
+              </el-dropdown-item>
+              <el-dropdown-item>
+                <router-link to="/admin">
+                  <el-icon><Setting /></el-icon>
+                  系统管理
+                </router-link>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
 
       <div class="navbar-right">

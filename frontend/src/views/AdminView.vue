@@ -7,22 +7,22 @@
           <el-row :gutter="20">
             <el-col :span="6">
               <el-card>
-                <el-statistic title="患者总数" :value="1234" />
+                <el-statistic title="患者总数" :value="stats.total_patients" />
               </el-card>
             </el-col>
             <el-col :span="6">
               <el-card>
-                <el-statistic title="医生总数" :value="56" />
+                <el-statistic title="医生总数" :value="stats.total_doctors" />
               </el-card>
             </el-col>
             <el-col :span="6">
               <el-card>
-                <el-statistic title="对话总数" :value="8765" />
+                <el-statistic title="对话总数" :value="stats.total_conversations" />
               </el-card>
             </el-col>
             <el-col :span="6">
               <el-card>
-                <el-statistic title="今日活跃" :value="234" />
+                <el-statistic title="今日活跃" :value="stats.today_conversations" />
               </el-card>
             </el-col>
           </el-row>
@@ -222,23 +222,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue'
-import { agentConfigApi, type AgentLLMConfig, type LLMProviderInfo, type EnvLLMInfo } from '@/api/index'
+import { agentConfigApi, adminApi, type AgentLLMConfig, type LLMProviderInfo, type EnvLLMInfo } from '@/api/index'
 
 const activeTab = ref('overview')
-const agents = ref([
-  { name: '糖尿病专科Agent', type: 'specialist', status: 'active' },
-  { name: '高血压专科Agent', type: 'specialist', status: 'active' },
-  { name: '营养师Agent', type: 'nutrition', status: 'active' },
-  { name: '健康教练Agent', type: 'coach', status: 'inactive' }
-])
-const evaluations = ref([
-  { name: '糖尿病问答测试', score: 0.92, date: '2024-01-15' },
-  { name: '安全评估测试', score: 0.88, date: '2024-01-14' },
-  { name: '用药安全测试', score: 0.95, date: '2024-01-13' }
-])
+const stats = reactive({
+  total_patients: 0,
+  total_doctors: 0,
+  total_conversations: 0,
+  today_conversations: 0
+})
+const agents = ref<Array<{name: string; type: string; status: string}>>([])
+const evaluations = ref<Array<{name: string; score: number; date: string}>>([])
 
 const configList = ref<AgentLLMConfig[]>([])
 const tableLoading = ref(false)
@@ -298,13 +295,7 @@ async function loadProviders() {
     const res = await agentConfigApi.getProviders()
     providerList.value = res.providers || (res as any)
   } catch {
-    providerList.value = [
-      { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini'], configured: false, api_key_hint: '' },
-      { id: 'anthropic', name: 'Anthropic', models: ['claude-3-5-sonnet-20241022'], configured: false, api_key_hint: '' },
-      { id: 'siliconflow', name: 'SiliconFlow', models: ['Qwen/Qwen2.5-7B-Instruct'], configured: false, api_key_hint: '' },
-      { id: 'ollama', name: 'Ollama', models: ['llama3', 'qwen2'], configured: false, api_key_hint: '' },
-      { id: 'dashscope', name: 'DashScope', models: ['qwen-plus', 'qwen-turbo'], configured: false, api_key_hint: '' },
-    ]
+    providerList.value = []
   }
 }
 
@@ -314,6 +305,35 @@ async function loadEnvInfo() {
   } catch {
     envInfo.value = null
   }
+}
+
+async function loadStats() {
+  try {
+    const res = await adminApi.getStats()
+    stats.total_patients = res.total_patients
+    stats.total_doctors = res.total_doctors
+    stats.total_conversations = res.total_conversations
+    stats.today_conversations = res.today_conversations
+  } catch {}
+}
+
+async function loadAgentsAndEvaluations() {
+  try {
+    const res = await adminApi.getAgents()
+    agents.value = (res.items || []).map(a => ({
+      name: a.name,
+      type: a.type,
+      status: a.status
+    }))
+  } catch {}
+  try {
+    const res = await adminApi.getEvaluations()
+    evaluations.value = (res.items || []).map(e => ({
+      name: e.agent_type,
+      score: e.pass_rate,
+      date: e.created_at ? new Date(e.created_at).toLocaleDateString('zh-CN') : ''
+    }))
+  } catch {}
 }
 
 function handleEdit(row: AgentLLMConfig) {
@@ -430,6 +450,8 @@ async function handleTestInDialog() {
 }
 
 onMounted(() => {
+  loadStats()
+  loadAgentsAndEvaluations()
   loadConfigs()
   loadProviders()
   loadEnvInfo()

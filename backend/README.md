@@ -7,7 +7,14 @@
 项目使用 Poetry 管理依赖。在已激活的 venv 中执行：
 
 ```powershell
+# 创建虚拟环境
+python -m venv venv
+
+# 激活虚拟环境
+.\venv\Scripts\activate
+
 pip install poetry
+
 poetry install
 ```
 

@@ -1,0 +1,22 @@
+{
+  "name": "康伴健康",
+  "version": "1.0.0",
+  "uni-app": {
+    "compilerVersion": 3,
+    "condition": {
+      "current": 0,
+      "list": []
+    }
+  },
+  "projectid": {
+    "weixin": {
+      "appid": "wxf3b00f6298945f8d",
+      "projectname": "wellhealth-miniapp"
+    }
+  },
+  "setting": {
+    "bundle": false,
+    "userConfirmedBundleSwitch": false,
+    "ignoreUploadUnusedFiles": true
+  }
+}

@@ -1,0 +1,49 @@
+/**
+ * uni-app 主题配置
+ * 
+ * 主题说明:
+ * - 主题变量定义在 ./uni-theme.scss 中 (已弃用)
+ * - 实际变量定义在 static/styles/index.scss 中
+ * - 一键换肤: 运行 `node scripts/build-theme.js <theme-name>`
+ * - 支持主题: sagegreen, mistblue
+ */
+
+// 引入生成的主题变量 (已弃用，使用 static/styles/index.scss 替代)
+// @import './uni-theme.scss';
+
+// 其他内置变量 (不随主题变化)
+$uni-text-color-inverse:#fff;
+$uni-text-color-disable:#c0c0c0;
+$uni-bg-color-mask:rgba(0, 0, 0, 0.4);
+
+$uni-border-color:#c8c7cc;
+
+$uni-font-size-sm:12px;
+$uni-font-size-base:14px;
+$uni-font-size-lg:16px;
+
+$uni-img-size-sm:20px;
+$uni-img-size-base:26px;
+$uni-img-size-lg:40px;
+
+$uni-border-radius-sm: 2px;
+$uni-border-radius-base: 3px;
+$uni-border-radius-lg: 6px;
+$uni-border-radius-circle: 50%;
+
+$uni-spacing-row-sm: 5px;
+$uni-spacing-row-base: 10px;
+$uni-spacing-row-lg: 15px;
+
+$uni-spacing-col-sm: 4px;
+$uni-spacing-col-base: 8px;
+$uni-spacing-col-lg: 12px;
+
+$uni-opacity-disabled: 0.3;
+
+$uni-color-title: #2F2E2A;
+$uni-font-size-title:20px;
+$uni-color-subtitle: #7F7D74;
+$uni-font-size-subtitle:26px;
+$uni-color-paragraph: #2F2E2A;
+$uni-font-size-paragraph:15px;

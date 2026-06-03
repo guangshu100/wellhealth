@@ -64,8 +64,13 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Mini Program (小程序) - 不上传
-miniapp/
+# Mini Program (小程序) - 源码上传，构建产物不传
+miniapp/node_modules/
+miniapp/dist/
+miniapp/unpackage/
+miniapp/src/static/tabbar/
+miniapp/.hbuilderx/
+miniapp/src-tauri/
 
 # Tauri build files
 frontend/src-tauri/target/

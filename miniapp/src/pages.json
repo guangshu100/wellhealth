@@ -1,0 +1,50 @@
+{
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "WellHealth", "navigationStyle": "custom" } },
+    { "path": "pages/login/index", "style": { "navigationBarTitleText": "登录", "navigationStyle": "custom" } },
+    { "path": "pages/register/index", "style": { "navigationBarTitleText": "注册", "navigationStyle": "custom" } },
+    { "path": "pages/reset-password/index", "style": { "navigationBarTitleText": "找回密码", "navigationStyle": "custom" } },
+    { "path": "pages/chat/index", "style": { "navigationBarTitleText": "AI咨询" } },
+    { "path": "pages/health/index", "style": { "navigationBarTitleText": "健康数据" } },
+    { "path": "pages/medication/index", "style": { "navigationBarTitleText": "用药提醒" } },
+    { "path": "pages/calorie/index", "style": { "navigationBarTitleText": "卡路里跟踪" } },
+    { "path": "pages/cognitive/index", "style": { "navigationBarTitleText": "认知健康" } },
+    { "path": "pages/cognitive/assessment", "style": { "navigationBarTitleText": "认知评估" } },
+    { "path": "pages/cognitive/training", "style": { "navigationBarTitleText": "认知训练" } },
+    { "path": "pages/cognitive/report", "style": { "navigationBarTitleText": "训练报告" } },
+    { "path": "pages/family/index", "style": { "navigationBarTitleText": "家庭关爱" } },
+    { "path": "pages/prescription/index", "style": { "navigationBarTitleText": "处方查询" } },
+    { "path": "pages/purchase/index", "style": { "navigationBarTitleText": "购药记录" } },
+    { "path": "pages/prediction/index", "style": { "navigationBarTitleText": "健康预测" } },
+    { "path": "pages/profile/index", "style": { "navigationBarTitleText": "个人中心" } },
+    { "path": "pages/knowledge/index", "style": { "navigationBarTitleText": "知识库" } },
+    { "path": "pages/recipe/index", "style": { "navigationBarTitleText": "拍照做菜" } },
+    { "path": "pages/simulation/index", "style": { "navigationBarTitleText": "干预模拟" } },
+    { "path": "pages/chronic/index", "style": { "navigationBarTitleText": "慢病管理" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "WellHealth",
+    "navigationBarBackgroundColor": "#F8FAF8",
+    "backgroundColor": "#F8FAF8"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#5B8C5A",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页", "iconPath": "static/tab/home.png", "selectedIconPath": "static/tab/home-active.png" },
+      { "pagePath": "pages/chat/index", "text": "AI咨询", "iconPath": "static/tab/chat.png", "selectedIconPath": "static/tab/chat-active.png" },
+      { "pagePath": "pages/health/index", "text": "健康", "iconPath": "static/tab/health.png", "selectedIconPath": "static/tab/health-active.png" },
+      { "pagePath": "pages/family/index", "text": "家庭", "iconPath": "static/tab/family.png", "selectedIconPath": "static/tab/family-active.png" },
+      { "pagePath": "pages/profile/index", "text": "我的", "iconPath": "static/tab/profile.png", "selectedIconPath": "static/tab/profile-active.png" }
+    ]
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^com-(.*)": "@/components/com-$1/com-$1.vue"
+    }
+  }
+}

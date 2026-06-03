@@ -1,0 +1,53 @@
+/* 全局样式 - 使用 CSS 变量支持运行时主题切换 */
+page {
+	font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
+	font-size: 28rpx;
+	
+	/* 默认主题: 鼠尾草绿 */
+	--color-primary: #5E8B5A;
+	--color-primary-light: #7CA878;
+	--color-primary-dark: #4C7048;
+	--color-bg-page: #FCF8F0;
+	--color-bg-card: #FFFFFF;
+	--color-bg-card-light: #FCF8F0;
+	--color-bg-hover: #E8F0E6;
+	--color-secondary: #DDCFB0;
+	--color-secondary-light: #E8DFD0;
+	--color-accent: #E7B83E;
+	--color-accent-light: #F0CE70;
+	--color-success: #5E8B5A;
+	--color-warning: #E7B83E;
+	--color-danger: #CD8B5B;
+	--color-error: #CD8B5B;
+	--color-info: #DDCFB0;
+	--color-text-primary: #2F2E2A;
+	--color-text-secondary: #7F7D74;
+	--color-text-placeholder: #A5A49C;
+	--color-text-inverse: #FFFFFF;
+	--color-border: #DDCFB0;
+	--color-border-light: #E8DFD0;
+	
+	color: var(--color-text-primary);
+	background-color: var(--color-bg-page);
+	line-height: 1.5;
+	box-sizing: border-box;
+}
+
+button {
+	margin: 0;
+	padding: 0;
+	background-color: transparent;
+	border: none;
+	outline: none;
+	line-height: normal;
+}
+
+button::after {
+	border: none;
+}
+
+::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+	color: transparent;
+}

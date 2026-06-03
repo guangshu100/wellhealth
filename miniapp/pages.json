@@ -1,0 +1,166 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/chat-list/chat-list",
+      "style": {
+        "navigationBarTitleText": "AI咨询"
+      }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/reset-password/reset-password",
+      "style": {
+        "navigationBarTitleText": "找回密码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "康伴健康",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/health/health",
+      "style": {
+        "navigationBarTitleText": "健康档案"
+      }
+    },
+    {
+      "path": "pages/chat/chat",
+      "style": {
+        "navigationBarTitleText": "AI咨询"
+      }
+    },
+    {
+      "path": "pages/simulation/simulation",
+      "style": {
+        "navigationBarTitleText": "干预预测"
+      }
+    },
+    {
+      "path": "pages/calorie/calorie",
+      "style": {
+        "navigationBarTitleText": "卡路里跟踪"
+      }
+    },
+    {
+      "path": "pages/reminder/reminder",
+      "style": {
+        "navigationBarTitleText": "用药提醒"
+      }
+    },
+    {
+      "path": "pages/report/report",
+      "style": {
+        "navigationBarTitleText": "体检报告"
+      }
+    },
+    {
+      "path": "pages/report/detail",
+      "style": {
+        "navigationBarTitleText": "报告详情"
+      }
+    },
+    {
+      "path": "pages/prescription/prescription",
+      "style": {
+        "navigationBarTitleText": "处方查询"
+      }
+    },
+    {
+      "path": "pages/prescription/detail",
+      "style": {
+        "navigationBarTitleText": "处方详情"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/family/family",
+      "style": {
+        "navigationBarTitleText": "亲情账号"
+      }
+    },
+    {
+      "path": "pages/recipe/recipe",
+      "style": {
+        "navigationBarTitleText": "拍照做菜"
+      }
+    },
+    {
+      "path": "pages/health-data/health-data",
+      "style": {
+        "navigationBarTitleText": "健康数据"
+      }
+    },
+    {
+      "path": "pages/prediction/prediction",
+      "style": {
+        "navigationBarTitleText": "健康预测"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "康伴健康",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FCF8F0"
+  },
+  "tabBar": {
+    "color": "#7F7D74",
+    "selectedColor": "#5E8B5A",
+    "borderStyle": "black",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/images/home-h.png",
+        "selectedIconPath": "static/images/home.png"
+      },
+      {
+        "pagePath": "pages/health/health",
+        "text": "健康",
+        "iconPath": "static/images/health-h.png",
+        "selectedIconPath": "static/images/health.png"
+      },
+      {
+        "pagePath": "pages/chat-list/chat-list",
+        "text": "AI咨询",
+        "iconPath": "static/images/chat-h.png",
+        "selectedIconPath": "static/images/chat.png"
+      },
+      {
+        "pagePath": "pages/recipe/recipe",
+        "text": "做菜",
+        "iconPath": "static/images/recipe-h.png",
+        "selectedIconPath": "static/images/recipe.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "static/images/profile-h.png",
+        "selectedIconPath": "static/images/profile.png"
+      }
+    ]
+  }
+}

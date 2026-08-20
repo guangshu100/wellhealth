@@ -1,0 +1,15 @@
+node_modules
+dist
+.DS_Store
+.idea
+.vscode
+*.log
+src-tauri/target
+src-tauri/gen
+
+# 桌面端打包产物不进入 Web 镜像
+*.exe
+*.msi
+*.app
+*.deb
+*.rpm

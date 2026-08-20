@@ -1,124 +1,70 @@
-version: '3.8'
+# ============================================================
+# WellHealth 容器化部署编排（仅前后端应用，中间件使用已有实例）
+#
+# 启动：      docker compose -f deploy/docker-compose.yml up -d --build
+# 停止：      docker compose -f deploy/docker-compose.yml down
+# 使用本地 Ollama：docker compose -f deploy/docker-compose.yml --profile ollama up -d
+# 执行数据库迁移：docker compose -f deploy/docker-compose.yml run --rm backend alembic upgrade head
+# ============================================================
 
 services:
-  # MySQL数据库
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: wellhealth
-      MYSQL_USER: wellhealth
-      MYSQL_PASSWORD: wellhealth123
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis缓存
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-
-  # Neo4j图数据库
-  neo4j:
-    image: neo4j:5
-    environment:
-      NEO4J_AUTH: neo4j/password
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    volumes:
-      - neo4j_data:/data
-
-  # Qdrant向量数据库
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-
-  # 后端API
+  # ---------- 后端 API ----------
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
+    image: wellhealth-backend:latest
+    container_name: wellhealth-backend
+    restart: unless-stopped
+    # 加载 backend/.env 中的所有环境变量（密钥与 LLM 配置）
+    env_file:
+      - ../backend/.env
+    environment:
+      # 中间件连接地址：默认指向宿主机（如需远程/容器，覆盖这些变量即可）
+      MYSQL_HOST: ${MYSQL_HOST:-host.docker.internal}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      REDIS_HOST: ${REDIS_HOST:-host.docker.internal}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      NEO4J_URI: ${NEO4J_URI:-bolt://host.docker.internal:7687}
+      QDRANT_HOST: ${QDRANT_HOST:-host.docker.internal}
+      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      # 本地 Ollama（启动 compose 时使用 compose 内置 ollama 服务时可改为 http://ollama:11434）
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      # 兼容 Windows/macOS/Linux 的"宿主机"寻址
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
-    environment:
-      - MYSQL_HOST=mysql
-      - REDIS_HOST=redis
-      - NEO4J_URI=bolt://neo4j:7687
-      - QDRANT_HOST=qdrant
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      neo4j:
-        condition: service_started
-      qdrant:
-        condition: service_started
-    volumes:
-      - ./backend:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
-  # Celery Worker - 异步任务执行
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    command: celery -A app.tasks worker --loglevel=info
-    environment:
-      - MYSQL_HOST=mysql
-      - REDIS_HOST=redis
-      - NEO4J_URI=bolt://neo4j:7687
-      - QDRANT_HOST=qdrant
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    volumes:
-      - ./backend:/app
-
-  # Celery Beat - 定时任务调度
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    command: celery -A app.tasks beat --loglevel=info
-    environment:
-      - MYSQL_HOST=mysql
-      - REDIS_HOST=redis
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    volumes:
-      - ./backend:/app
-
-  # 前端
+  # ---------- 前端 Web（Nginx 静态托管 + 反代） ----------
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
+    image: wellhealth-frontend:latest
+    container_name: wellhealth-frontend
+    restart: unless-stopped
     ports:
       - "3000:80"
     depends_on:
       - backend
 
+  # ---------- 可选：本地 Ollama 大模型（默认不启动） ----------
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    container_name: wellhealth-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
-  mysql_data:
-  redis_data:
-  neo4j_data:
-  qdrant_data:
+  ollama_data:

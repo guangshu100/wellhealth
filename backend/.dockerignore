@@ -1,0 +1,29 @@
+# 环境与机密
+.env
+*.pem
+*.key
+
+# Python
+venv/
+.venv/
+**/__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# 构建产物
+dist/
+build/
+
+# IDE / 系统
+.idea/
+.vscode/
+.DS_Store
+
+# 测试与文档无需打入镜像
+tests/
+doc/
+README.md

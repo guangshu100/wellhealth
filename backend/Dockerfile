@@ -31,20 +31,21 @@ FROM python:3.11-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    TZ=Asia/Shanghai
+    TZ=Asia/Shanghai \
+    PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
-# 复制 Stage 1 安装好的依赖
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# 整体复制 Stage 1 安装的依赖（bin 脚本 + site-packages 一并带入，
+# 保证 uvicorn/alembic 等可执行文件存在且位于 PATH 中）
+COPY --from=builder /usr/local /usr/local
 
 # 复制应用代码
 COPY . .
 
-EXPOSE 8000
+EXPOSE 18100
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:18100/health')"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "18100"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "18100"]

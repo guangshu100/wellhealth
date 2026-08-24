@@ -164,10 +164,12 @@ npm install
 npm run tauri:dev
 ```
 
-5. Docker一键启动
+5. Docker一键启动（后台运行）
 ```bash
-cd deploy
-docker-compose up -d
+# 一键后台启动（构建 + 启动 + 迁移全自动）
+bash deploy/start.sh                    # Linux/macOS
+.\deploy\start.ps1                      # Windows PowerShell
+# 或手动分步：详细说明见 deploy/README.md
 ```
 
 ### 环境变量配置
@@ -241,7 +243,8 @@ wellhealth/
 │   ├── src-tauri/                # Tauri桌面端配置
 │   └── package.json
 ├── deploy/                         # Docker部署
-│   └── docker-compose.yml        # 6个服务编排
+│   ├── docker-compose.yml        # 前后端编排（+可选Ollama）
+│   └── README.md                 # 部署文档
 ├── docs/                           # 项目文档
 │   ├── init.sql                  # 数据库初始化（26张表+种子数据）
 │   ├── neo4j_init.cypher         # 知识图谱初始化

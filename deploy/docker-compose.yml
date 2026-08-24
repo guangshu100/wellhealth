@@ -34,7 +34,7 @@ services:
       # 兼容 Windows/macOS/Linux 的"宿主机"寻址
       - "host.docker.internal:host-gateway"
     ports:
-      - "18100:18100"
+      - "${BACKEND_PORT:-18100}:18100"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18100/health')"]
       interval: 30s
@@ -51,7 +51,7 @@ services:
     container_name: wellhealth-frontend
     restart: unless-stopped
     ports:
-      - "1893:1893"
+      - "${FRONTEND_PORT:-1893}:1893"
     depends_on:
       - backend
 

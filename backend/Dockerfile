@@ -1,28 +1,28 @@
 # syntax=docker/dockerfile:1
+
 # ============================================================
 # Stage 1: 依赖构建
 # ============================================================
 FROM python:3.11-slim AS builder
 
-ENV POETRY_HOME=/opt/poetry \
-    POETRY_VERSION=2.4.1 \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_CREATE=false \
-    PATH="/opt/poetry/bin:$PATH"
+ENV POETRY_VERSION=2.4.1 \
+    POETRY_NO_INTERACTION=1
 
 WORKDIR /build
 
-# 安装 curl 与编译工具（部分依赖需编译），再安装 poetry，最后清理
+# 安装编译工具，创建 venv，安装 poetry 及 export 插件
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl build-essential \
-    && curl -sSL https://install.python-poetry.org | python3 - \
+    && python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir "poetry==${POETRY_VERSION}" poetry-plugin-export \
     && rm -rf /var/lib/apt/lists/*
 
-# 只复制依赖声明文件，利用 Docker 层缓存
+# 只复制依赖声明，利用缓存
 COPY pyproject.toml poetry.lock ./
 
-# 依据 poetry.lock 安装主依赖到全局 site-packages（规避 poetry export 的插件依赖）
-RUN poetry install --no-root --without dev --no-ansi
+# 导出 requirements 并安装，失败时构建停止
+RUN /opt/venv/bin/poetry export -f requirements.txt --without dev --no-ansi -o /tmp/requirements.txt \
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
 # ============================================================
 # Stage 2: 运行镜像
@@ -32,13 +32,13 @@ FROM python:3.11-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     TZ=Asia/Shanghai \
-    PATH="/usr/local/bin:$PATH"
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# 整体复制 Stage 1 安装的依赖（bin 脚本 + site-packages 一并带入，
-# 保证 uvicorn/alembic 等可执行文件存在且位于 PATH 中）
-COPY --from=builder /usr/local /usr/local
+# 复制已安装依赖的虚拟环境
+COPY --from=builder /opt/venv /opt/venv
 
 # 复制应用代码
 COPY . .

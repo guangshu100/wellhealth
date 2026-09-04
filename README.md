@@ -282,7 +282,7 @@ SECRET_KEY=your-secret-key          # 生产环境必须更换
 - 最新功能动态与使用技巧
 - 专属技术支持
 
-![微信公众号](frontend/wechat-qrcode.png)
+![微信公众号](docs/wechat-qrcode.png)
 
 > 💡 **操作说明**：点一个star → 打开微信 → 扫一扫 → 关注公众号 → 发送消息 `bidmaster` → 自动回复作者微信及相关信息。
 

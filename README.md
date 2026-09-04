@@ -2,12 +2,18 @@
 
 > 慢病管理AI平台 — 多Agent协作 + 干预效果仿真 + 医疗级安全评估
 
+📖 [项目介绍](#project-intro) | ✨ [核心特性](#core-features) | 🛠 [技术架构](#tech-architecture) | 🧩 [系统架构](#system-architecture) | 🤖 [9个专业Agent](#agents) | 📦 [功能模块](#modules) | 🚀 [快速开始](#quick-start) | 📡 [API文档](#api-docs) | 🗄 [数据架构](#data-architecture) | 🔒 [安全体系](#security) | 🗺 [路线图](#roadmap) | 💬 [联系作者](#contact) | 📄 [许可证](#license)
+
+---
+
+<a id="project-intro"></a>
 ## 项目介绍
 
 康伴(WellHealth)是一款专注于慢性病管理的AI平台，以糖尿病、高血压为核心，通过9个专业化AI Agent协作、干预效果仿真预测、医疗级安全评估等核心技术，为慢病患者提供专业、个性化的健康管理服务。
 
 **定位**：做慢病领域的专科AI专家，而不是健康领域的全能助手。
 
+<a id="core-features"></a>
 ## 核心特性
 
 - **多Agent协作** — 9个专科Agent（糖尿病、高血压、营养、运动、用药、心理、康复、认知、通用）协同服务，支持会诊/辩论/协作三种编排模式
@@ -18,6 +24,7 @@
 - **家庭关怀体系** — 家庭管理、隐私控制、关怀消息、用药依从性监控、健康预警通知
 - **Per-Agent LLM配置** — 每个Agent可独立配置LLM Provider/Model，支持5种Provider和降级策略
 
+<a id="tech-architecture"></a>
 ## 技术架构
 
 ### 后端
@@ -54,6 +61,7 @@
 | DashScope | qwen-plus | 国内合规场景 |
 | Ollama | llama3 | 本地私有化部署 |
 
+<a id="system-architecture"></a>
 ## 系统架构
 
 ```
@@ -88,6 +96,7 @@
                    安全响应输出
 ```
 
+<a id="agents"></a>
 ## 9个专业Agent
 
 | Agent | 角色 | 专长 | 可用工具 |
@@ -102,6 +111,7 @@
 | 康复指导 | 康复治疗师助手 | 康复训练、运动处方、功能恢复 | knowledge_search, vitals_analysis |
 | 认知评估 | 认知评估师助手 | 认知评估、训练建议、早期衰退检测 | knowledge_search, cognitive_assessment |
 
+<a id="modules"></a>
 ## 功能模块
 
 | 模块 | 功能 | 前端页面 |
@@ -121,6 +131,7 @@
 | 患者管理 | 患者信息CRUD、生命体征管理 | PatientView / PatientManageView |
 | 系统管理 | Agent配置、LLM配置、系统监控 | AdminView / AgentConfigView |
 
+<a id="quick-start"></a>
 ## 快速开始
 
 ### 环境要求
@@ -192,65 +203,7 @@ ANTHROPIC_API_KEY=your-api-key     # 可选
 SECRET_KEY=your-secret-key          # 生产环境必须更换
 ```
 
-## 项目结构
-
-```
-wellhealth/
-├── backend/                        # Python后端
-│   ├── app/
-│   │   ├── agents/definitions/    # 9个Agent定义（YAML+MD）
-│   │   │   ├── coach/            # 健康教练Agent
-│   │   │   ├── cognitive/        # 认知评估Agent
-│   │   │   ├── diabetes/         # 糖尿病专科Agent
-│   │   │   ├── general/          # 通用健康助手
-│   │   │   ├── hypertension/     # 高血压专科Agent
-│   │   │   ├── medication/       # 用药咨询Agent
-│   │   │   ├── nutrition/        # 营养咨询Agent
-│   │   │   ├── psychology/       # 心理支持Agent
-│   │   │   └── rehabilitation/   # 康复指导Agent
-│   │   ├── api/                  # API路由（20+模块）
-│   │   ├── services/             # 业务逻辑
-│   │   │   ├── agents/          # 多Agent框架
-│   │   │   │   ├── core/       # Agent定义/加载/执行/LLM路由
-│   │   │   │   ├── orchestrator/ # 工作流编排/多Agent对话
-│   │   │   │   └── quality/    # 质量门控
-│   │   │   ├── agent_manager.py # Agent管理/选择/意图分类
-│   │   │   ├── chronic_disease_manager.py  # 慢病管理
-│   │   │   ├── cognitive_service.py        # 认知评估与训练
-│   │   │   ├── family_service.py           # 家庭关怀体系
-│   │   │   ├── health_prediction_service.py # 健康预测
-│   │   │   ├── intervention_simulator.py    # 干预仿真
-│   │   │   ├── knowledge_base.py           # 知识图谱+RAG
-│   │   │   ├── llm_client.py              # 统一LLM客户端
-│   │   │   ├── recipe_service.py           # 食谱服务
-│   │   │   └── safety_checker.py           # 安全检查
-│   │   ├── models/               # 数据模型（26张表）
-│   │   └── utils/                # 工具类（数据库/认证/邮件）
-│   ├── scripts/                  # 数据库脚本
-│   └── pyproject.toml
-├── frontend/                       # Vue3前端 + Tauri桌面端
-│   ├── src/
-│   │   ├── views/                # 24个页面视图
-│   │   │   └── cognitive/       # 4个认知训练游戏
-│   │   ├── components/           # 公共组件
-│   │   ├── stores/              # Pinia状态管理（4个Store）
-│   │   ├── api/                 # API客户端封装
-│   │   ├── router/              # 路由配置（27条路由）
-│   │   ├── config/              # 应用配置
-│   │   └── assets/              # 静态资源与样式
-│   ├── src-tauri/                # Tauri桌面端配置
-│   └── package.json
-├── deploy/                         # Docker部署
-│   └── docker-compose.yml        # 6个服务编排
-├── docs/                           # 项目文档
-│   ├── init.sql                  # 数据库初始化（26张表+种子数据）
-│   ├── neo4j_init.cypher         # 知识图谱初始化
-│   └── WellHealth-系统架构文档.md
-├── config/                         # 主题配置
-├── constraints/                    # 约束规则（后端/前端/安全）
-└── agents.md                       # AI Agent操作手册
-```
-
+<a id="api-docs"></a>
 ## API文档
 
 启动后端服务后访问：
@@ -273,6 +226,7 @@ wellhealth/
 | `/api/v1/admin` | 系统管理 | Agent配置、系统监控 |
 | `/api/v1/users` | 用户管理 | 注册、登录、权限 |
 
+<a id="data-architecture"></a>
 ## 数据架构
 
 ### MySQL（26张表）
@@ -288,6 +242,7 @@ wellhealth/
 - **关系**：治疗、导致、并发、药物相互作用(含风险等级)、推荐、属于等
 - **特色**：药物相互作用标注风险等级(high/moderate/low)与处理建议
 
+<a id="security"></a>
 ## 安全体系
 
 - **SafetyChecker**：红线规则（禁止诊断、禁止具体剂量、紧急症状检测）+ 警告规则 + 三级安全等级
@@ -296,6 +251,7 @@ wellhealth/
 - **数据安全**：敏感数据加密存储、SQL注入防护、XSS防护
 - **医疗合规**：所有AI建议自动添加免责声明，禁止生成诊断结论和具体用药剂量
 
+<a id="roadmap"></a>
 ## 路线图
 
 - [x] 项目框架搭建
@@ -314,6 +270,26 @@ wellhealth/
 - [ ] 实时健康数据集成
 - [ ] 管理后台完善
 
+<a id="contact"></a>
+## 💬 联系作者
+
+欢迎各位开发者、医疗行业从业者、技术爱好者交流学习、参与项目迭代、咨询部署与二次开发相关问题，如有bug反馈、功能建议、合作需求均可联系作者。
+✨ Star 项目
+扫码关注微信公众号，回复 **wellhealth** 即可获取：
+
+- 作者个人微信
+- Agent行业交流群
+- 最新功能动态与使用技巧
+- 专属技术支持
+
+![微信公众号](frontend/wechat-qrcode.png)
+
+> 💡 **操作说明**：点一个star → 打开微信 → 扫一扫 → 关注公众号 → 发送消息 `bidmaster` → 自动回复作者微信及相关信息。
+
+---
+如果觉得本项目有帮助，欢迎Star、Fork支持项目持续更新！
+
+<a id="license"></a>
 ## 许可证
 
 Apache License 2.0

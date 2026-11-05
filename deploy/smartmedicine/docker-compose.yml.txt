@@ -1,0 +1,99 @@
+# SmartMedicine 会诊集成服务 - 独立部署编排
+#
+# 用途：把 wellhealth-backend:latest 镜像入口替换为
+#       app.integrations.smartmedicine.app:app，单容器只跑会诊服务。
+#       原 WellHealth 主应用 API 不再由本容器提供。
+#
+# 启动：  docker compose -f deploy/smartmedicine/docker-compose.yml --env-file <consultation.env> up -d --build
+# 停止：  docker compose -f deploy/smartmedicine/docker-compose.yml down
+# 初始化：docker compose -f deploy/smartmedicine/docker-compose.yml run --rm backend python -m app.integrations.smartmedicine.cli init-db
+# 验证：  docker compose -f deploy/smartmedicine/docker-compose.yml exec backend python -m app.integrations.smartmedicine.cli status
+#
+# 前置：已执行 prepare_config.py prepare 生成 consultation.env
+# 约束：WEB_CONCURRENCY 必须为 1（会诊编排器用进程内 asyncio.Task）
+
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: wellhealth-backend:latest
+    container_name: wellhealth-backend
+    restart: unless-stopped
+    command:
+      - python
+      - -m
+      - uvicorn
+      - app.integrations.smartmedicine.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "18100"
+      - --workers
+      - "1"
+    environment:
+      WEB_CONCURRENCY: "1"
+      SM_CONSULT_ENABLED: "${SM_CONSULT_ENABLED:-false}"
+      SM_CONSULT_DATABASE_URL: "${SM_CONSULT_DATABASE_URL:-sqlite:////var/lib/smartmedicine/consultation.db}"
+      SM_CONSULT_DATA_KEY: "${SM_CONSULT_DATA_KEY}"
+      SM_CONSULT_KEY_HASHES: "${SM_CONSULT_KEY_HASHES}"
+      SM_CONSULT_CLIENT_ID: "${SM_CONSULT_CLIENT_ID:-smartmedicine}"
+      SM_CONSULT_CONTROL_FILE: "${SM_CONSULT_CONTROL_FILE:-/var/lib/smartmedicine/control.json}"
+      SM_CONSULT_MAX_CONCURRENT_RUNS: "${SM_CONSULT_MAX_CONCURRENT_RUNS:-1}"
+      SM_CONSULT_EXPERT_TIMEOUT: "${SM_CONSULT_EXPERT_TIMEOUT:-120}"
+      SM_CONSULT_RUN_TIMEOUT: "${SM_CONSULT_RUN_TIMEOUT:-900}"
+      SM_CONSULT_RETENTION_DAYS: "${SM_CONSULT_RETENTION_DAYS:-7}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-openai}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-gpt-4o-mini}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      ANTHROPIC_MODEL: "${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}"
+      SILICONFLOW_API_KEY: "${SILICONFLOW_API_KEY:-}"
+      SILICONFLOW_BASE_URL: "${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}"
+      SILICONFLOW_MODEL: "${SILICONFLOW_MODEL:-Qwen/Qwen2.5-7B-Instruct}"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3}"
+      MYSQL_HOST: "${MYSQL_HOST:-host.docker.internal}"
+      MYSQL_PORT: "${MYSQL_PORT:-3306}"
+      MYSQL_USER: "${MYSQL_USER:-wellhealth}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-wellhealth}"
+      REDIS_HOST: "${REDIS_HOST:-host.docker.internal}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+      QDRANT_HOST: "${QDRANT_HOST:-host.docker.internal}"
+      QDRANT_PORT: "${QDRANT_PORT:-6333}"
+      QDRANT_API_KEY: "${QDRANT_API_KEY:-}"
+      NEO4J_URI: "${NEO4J_URI:-bolt://host.docker.internal:7687}"
+      NEO4J_USER: "${NEO4J_USER:-neo4j}"
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-}"
+      SECRET_KEY: "${SECRET_KEY:-}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${BACKEND_PORT:-127.0.0.1:18100}:18100"
+    volumes:
+      - smartmedicine_state:/var/lib/smartmedicine
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:18100/health')"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: "2G"
+    labels:
+      com.wellhealth.smartmedicine: "true"
+
+volumes:
+  smartmedicine_state:
+    driver: local

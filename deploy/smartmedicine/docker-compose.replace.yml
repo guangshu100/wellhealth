@@ -1,0 +1,22 @@
+# Overlay for the EXISTING backend service. Use only through run.sh.
+services:
+  backend:
+    command:
+      - python
+      - -m
+      - uvicorn
+      - app.integrations.smartmedicine.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "18100"
+      - --workers
+      - "1"
+    env_file:
+      - ${SM_CONSULT_CONFIG_DIR:?Run prepare first}/consultation.env
+    environment:
+      WEB_CONCURRENCY: "1"
+    volumes:
+      - ${SM_CONSULT_STATE_DIR:?Run prepare first}:/var/lib/smartmedicine
+    labels:
+      com.wellhealth.smartmedicine: "true"

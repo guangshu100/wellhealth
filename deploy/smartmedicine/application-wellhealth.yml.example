@@ -1,0 +1,10 @@
+wellhealth:
+  consultation:
+    enabled: true
+    base-url: "http://127.0.0.1:18100"
+    api-key: "由prepare_config.py生成原始Key"
+    subject-secret: "由prepare_config.py生成固定Secret"
+    subject-namespace: "smartmedicine-test"
+    allow-insecure-local: true
+    connect-timeout-ms: 3000
+    request-timeout-ms: 15000
